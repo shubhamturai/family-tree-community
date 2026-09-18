@@ -15,6 +15,7 @@ jobs:
           script: |
             const labels = [
               ['family:pending','Community proposal awaiting review'],
+              ['family:needs-changes','Admin requested contributor changes'],
               ['family:approved','Approved by an administrator'],
               ['family:rejected','Proposal rejected'],
               ['family:applied','Approved proposal applied'],
