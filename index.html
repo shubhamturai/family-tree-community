@@ -117,7 +117,37 @@ function addPerson(){if(!editing)setEditMode(true);openModal("Add person",newPer
 function openModal(title,html,saveFn){$("modalTitle").textContent=title;$("modalBody").innerHTML=html;$("modal").classList.add("open");$("modalSave").onclick=saveFn;$("modalCancel").onclick=closeModal;$("modalClose").onclick=closeModal}
 function closeModal(){$("modal").classList.remove("open")}
 function requestBody(){let batch={operation:"BATCH_UPDATE",payload:{baseLastUpdated:baseLastUpdated,changes:changes.map(c=>({type:c.type,payload:c.payload}))}};return"FG_PROPOSAL\n"+JSON.stringify(batch)+"\nFG_PROPOSAL\n\n### Proposed changes\n"+changes.map((c,i)=>(i+1)+". "+c.label).join("\n")+"\n\nThis batch was created by direct in-place editing. The canonical family graph is unchanged until administrator approval."}
-async function adminSave(){if(!adminMode||!adminToken)return false;data.lastUpdated=new Date().toISOString();let r=await fetch("https://api.github.com/repos/"+REPO+"/contents/data/family.json",{method:"PUT",headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+adminToken,"X-GitHub-Api-Version":"2026-03-10","Content-Type":"application/json"},body:JSON.stringify({message:"Admin direct family-tree update ("+changes.length+" change(s))",content:btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2)+"\n"))),sha:adminFileSha,branch:"main"})});let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.message||"GitHub save failed");adminFileSha=j.content.sha;changes=[];draftClear();liveData=deep(data);baseLastUpdated=data.lastUpdated;renderChanges();return true}
+async function adminSave(){
+  if(!adminMode||!adminToken)return false;
+  data.lastUpdated=new Date().toISOString();
+  const payload=JSON.stringify(data,null,2)+"\n";
+  const requestBody={
+    message:"Admin direct family-tree update ("+changes.length+" change(s))",
+    content:btoa(unescape(encodeURIComponent(payload))),
+    sha:adminFileSha,
+    branch:"main"
+  };
+  const response=await fetch("https://api.github.com/repos/"+REPO+"/contents/data/family.json",{
+    method:"PUT",
+    headers:{
+      "Accept":"application/vnd.github+json",
+      "Authorization":"Bearer "+adminToken,
+      "X-GitHub-Api-Version":"2026-03-10",
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify(requestBody)
+  });
+  let result={};
+  try{result=await response.json()}catch(e){}
+  if(!response.ok)throw new Error(result.message||"GitHub save failed");
+  adminFileSha=result.content.sha;
+  changes=[];
+  draftClear();
+  liveData=deep(data);
+  baseLastUpdated=data.lastUpdated;
+  renderChanges();
+  return true;
+}
 let adminFileSha="";
 async function unlockAdmin(){
  let p=prompt("Enter admin password:");
