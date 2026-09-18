@@ -1,0 +1,33 @@
+name: Apply approved family proposal
+on:
+  issues:
+    types: [labeled]
+permissions:
+  contents: write
+  issues: write
+jobs:
+  apply:
+    if: github.event.label.name == 'family:approved' && github.event.issue.state == 'open'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Apply
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: node scripts/apply-proposal.mjs
+      - name: Commit
+        run: |
+          git config user.name "family-graph-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/family.json
+          git commit -m "Apply approved family proposal #${{ github.event.issue.number }}" || exit 0
+          git push
+      - name: Close as applied
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.update({owner:context.repo.owner,repo:context.repo.repo,issue_number:context.issue.number,state:'closed',state_reason:'completed',labels:['family:applied']});
+            await github.rest.issues.createComment({owner:context.repo.owner,repo:context.repo.repo,issue_number:context.issue.number,body:'✅ Approved proposal applied to data/family.json.'});
