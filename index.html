@@ -1,53 +1,334 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Family Graph</title>
 <script src="https://unpkg.com/cytoscape@3.33.1/dist/cytoscape.min.js"></script>
+<script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 <style>
-:root{--bg:#f6f7fb;--card:#fff;--text:#182034;--muted:#687083;--line:#dfe3ec;--primary:#5746e8;--soft:#eeecff}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,sans-serif}header{position:sticky;top:0;z-index:5;background:#ffffffee;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 24px;display:flex;gap:24px;align-items:center}.brand{font-weight:850;font-size:18px}.nav{display:flex;gap:6px}.nav button,.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 13px;cursor:pointer;font-weight:700}.nav button.active,.btn.primary{background:var(--primary);color:white;border-color:var(--primary)}main{max-width:1400px;margin:auto;padding:30px 24px 60px}.view{display:none}.view.active{display:block}.hero{display:flex;justify-content:space-between;gap:20px;align-items:end}.muted{color:var(--muted);line-height:1.55}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.toolbar input{width:320px}input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;background:white}label{display:grid;gap:6px;font-weight:700}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:15px 0}.stat,.card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px}.stat b{font-size:22px;display:block}.stat span{color:var(--muted);font-size:12px}.graph{height:650px;background:#fff;border:1px solid var(--line);border-radius:18px;position:relative;overflow:hidden}#cy{width:100%;height:100%}.panel{position:absolute;right:15px;top:15px;width:350px;max-height:calc(100% - 30px);overflow:auto;background:#fffffff5;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 12px 40px #18203422}.close{float:right;border:0;background:none;font-size:24px;cursor:pointer}.pill{display:inline-block;background:var(--soft);color:#493bc5;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.full{grid-column:1/-1}.section{margin-top:22px;border-top:1px solid var(--line);padding-top:18px}.notice{padding:14px;background:#fff8e8;border:1px solid #f0d9a0;border-radius:10px}.footer{max-width:1400px;margin:auto;padding:0 24px 30px;color:var(--muted)}a{color:var(--primary)}@media(max-width:800px){header{flex-wrap:wrap}.stats,.grid{grid-template-columns:1fr}.graph{height:580px}.panel{width:calc(100% - 30px)}}
+:root{--bg:#f5f7fb;--card:#fff;--text:#182034;--muted:#687083;--line:#dfe3ec;--primary:#5746e8;--soft:#eeecff;--danger:#b42318;--dangerBg:#fff1f0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,sans-serif}
+header{position:sticky;top:0;z-index:10;background:#ffffffee;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 24px;display:flex;gap:22px;align-items:center}
+.brand{font-weight:850;font-size:18px}.nav{display:flex;gap:6px;flex-wrap:wrap}
+.nav button,.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 13px;cursor:pointer;font-weight:700}
+.nav button.active,.btn.primary{background:var(--primary);color:white;border-color:var(--primary)}
+.btn.danger{background:var(--dangerBg);color:var(--danger);border-color:#efb0aa}
+main{max-width:1450px;margin:auto;padding:30px 24px 60px}
+.view{display:none}.view.active{display:block}
+.hero{display:flex;justify-content:space-between;gap:20px;align-items:end}.muted{color:var(--muted);line-height:1.55}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.toolbar input{width:320px}
+input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;background:white}
+label{display:grid;gap:6px;font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:15px 0}
+.stat,.card{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:15px}
+.stat b{font-size:22px;display:block}.stat span{color:var(--muted);font-size:12px}
+.graph{height:720px;background:#fff;border:1px solid var(--line);border-radius:18px;position:relative;overflow:hidden}
+#cy{width:100%;height:100%}
+.panel{position:absolute;right:15px;top:15px;width:370px;max-height:calc(100% - 30px);overflow:auto;background:#fffffff7;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 12px 40px #18203422}
+.close{float:right;border:0;background:none;font-size:24px;cursor:pointer}.pill{display:inline-block;background:var(--soft);color:#493bc5;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.full{grid-column:1/-1}.section{margin-top:22px;border-top:1px solid var(--line);padding-top:18px}
+.notice{padding:14px;background:#fff8e8;border:1px solid #f0d9a0;border-radius:10px}.hint{font-size:12px;color:var(--muted)}
+.footer{max-width:1450px;margin:auto;padding:0 24px 30px;color:var(--muted)}a{color:var(--primary)}
+.legend{position:absolute;left:15px;top:15px;background:#ffffffea;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12px;z-index:2}
+.legend b{display:block;margin-bottom:3px}
+@media(max-width:900px){header{flex-wrap:wrap}.stats,.grid{grid-template-columns:1fr}.graph{height:620px}.panel{width:calc(100% - 30px)}}
 </style>
 </head>
 <body>
-<header><div class="brand">🌳 Family Graph</div><nav class="nav"><button data-view="graphView" class="active">Explore</button><button data-view="contributeView">Contribute</button><button data-view="aboutView">About</button></nav></header>
+<header>
+  <div class="brand">🌳 Family Graph</div>
+  <nav class="nav">
+    <button data-view="graphView" class="active">Explore</button>
+    <button data-view="contributeView">Contribute</button>
+    <button data-view="aboutView">About</button>
+  </nav>
+</header>
 <main>
 <section id="graphView" class="view active">
-<div class="hero"><div><div style="color:#5746e8;font-weight:800;letter-spacing:.12em;font-size:11px">FAMILY GENEALOGY</div><h1>Explore the family graph</h1><p class="muted">Approved family relationships are published here. Click a person to inspect their profile.</p></div><div class="toolbar"><input id="search" placeholder="Search people…"><button class="btn" id="reset">Reset</button></div></div>
-<div class="stats" id="stats"></div><div class="graph"><div id="cy"></div><aside id="panel" class="panel" hidden></aside></div>
+  <div class="hero">
+    <div>
+      <div style="color:#5746e8;font-weight:800;letter-spacing:.12em;font-size:11px">FAMILY GENEALOGY</div>
+      <h1>Family tree</h1>
+      <p class="muted">The primary view is a top-down family tree: ancestors above, descendants below, children ordered left-to-right, and spouses shown beside their partner.</p>
+    </div>
+    <div class="toolbar">
+      <input id="search" placeholder="Search people…">
+      <button class="btn" id="treeMode">🌳 Tree</button>
+      <button class="btn" id="networkMode">◈ Network</button>
+      <button class="btn primary" id="addPersonBtn">＋ Add person</button>
+      <button class="btn" id="reset">Reset</button>
+    </div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="graph">
+    <div class="legend"><b id="layoutTitle">Hierarchical tree</b>Solid arrows = parent → child<br>Dashed links = spouse</div>
+    <div id="cy"></div>
+    <aside id="panel" class="panel" hidden></aside>
+  </div>
 </section>
+
 <section id="contributeView" class="view">
-<h1>Contribute to the family tree</h1><p class="muted">Anyone can propose a change in V1. Your proposal opens as a GitHub Issue and is not published until an administrator approves it.</p>
-<div class="notice"><b>Privacy:</b> Do not submit Aadhaar, mobile numbers, email addresses, exact home addresses, passwords, or other sensitive personal information through this public workflow.</div>
-<div class="card" style="margin-top:18px"><form id="form">
-<div class="grid">
-<label>Proposal type *<select id="type"><option value="ADD_PERSON">Add person</option><option value="UPDATE_PERSON">Update person</option><option value="ADD_PARENT_CHILD">Add parent/child relationship</option><option value="ADD_SPOUSE">Add spouse relationship</option></select></label>
-<label>Existing person<select id="existing"><option value="">Not applicable</option></select></label>
-<label>First name *<input id="firstName"></label><label>Middle name<input id="middleName"></label>
-<label>Family name<input id="familyName"></label><label>Display name<input id="displayName"></label>
-<label>Gender<select id="gender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option><option value="unknown">Unknown</option></select></label>
-<label>Date of birth<input id="dob" type="date"></label>
-<label>Date of death<input id="dod" type="date"></label><label>Birth place<input id="birthPlace"></label>
-<label>Birth region/state<input id="birthRegion"></label><label>Birth country<input id="birthCountry"></label>
-<label>Death place<input id="deathPlace"></label><label>Current city/region only<input id="location"></label>
-<label>Occupation<input id="occupation"></label><label>Evidence/source<input id="source" placeholder="Family record, certificate, etc."></label>
-<label class="full">Reason/context<textarea id="reason" rows="4"></textarea></label>
-</div>
-<div class="section"><button class="btn primary" type="submit">Prepare GitHub proposal</button> <span id="formStatus" class="muted"></span></div>
-</form></div>
+  <h1>Contribute to the family tree</h1>
+  <p class="muted">In V1 anyone can propose a change. The proposal is opened as a GitHub Issue and is not published until an administrator approves it.</p>
+  <div class="notice"><b>Privacy:</b> Do not submit Aadhaar, mobile numbers, email addresses, exact home addresses, passwords, or other sensitive personal information through this public workflow.</div>
+
+  <div class="card" style="margin-top:18px">
+    <form id="form">
+      <div class="grid">
+        <label>Proposal type *
+          <select id="type">
+            <option value="ADD_PERSON">Add person</option>
+            <option value="UPDATE_PERSON">Update person</option>
+            <option value="DELETE_PERSON">Delete person</option>
+            <option value="ADD_PARENT_CHILD">Add parent/child relationship</option>
+            <option value="ADD_SPOUSE">Add spouse relationship</option>
+          </select>
+        </label>
+        <label>Existing person
+          <select id="existing"><option value="">Not applicable</option></select>
+        </label>
+
+        <label>First name *<input id="firstName"></label>
+        <label>Middle name<input id="middleName"></label>
+        <label>Family name<input id="familyName"></label>
+        <label>Display name<input id="displayName"></label>
+        <label>Gender
+          <select id="gender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option><option value="unknown">Unknown</option></select>
+        </label>
+        <label>Date of birth<input id="dob" type="date"></label>
+        <label>Date of death<input id="dod" type="date"></label>
+        <label>Birth place<input id="birthPlace"></label>
+        <label>Birth region/state<input id="birthRegion"></label>
+        <label>Birth country<input id="birthCountry"></label>
+        <label>Death place<input id="deathPlace"></label>
+        <label>Current city/region only<input id="location"></label>
+        <label>Occupation<input id="occupation"></label>
+        <label>Evidence/source<input id="source" placeholder="Family record, certificate, etc."></label>
+        <label class="full">Reason/context<textarea id="reason" rows="4"></textarea></label>
+      </div>
+
+      <div id="deleteNotice" class="notice" style="display:none;margin-top:16px">
+        <b>Delete means archive from the public tree.</b> The person's immutable ID and historical audit trail are retained. Their public record is hidden after admin approval so relationships can be safely restored later.
+      </div>
+
+      <div class="section">
+        <button class="btn primary" type="submit">Prepare GitHub proposal</button>
+        <span id="formStatus" class="muted"></span>
+      </div>
+    </form>
+  </div>
 </section>
-<section id="aboutView" class="view"><h1>About this project</h1><p class="muted">This is a zero-server family genealogy community. GitHub Pages hosts the public graph, GitHub Issues hold proposals, and GitHub Actions can apply administrator-approved changes.</p><div class="card"><h3>Data principles</h3><ul><li>Every person has an immutable ID.</li><li>Relationships use IDs, never names as identity.</li><li>Children retain birth order.</li><li>Life status is derived from death information where possible.</li><li>Sensitive identity/contact data is intentionally excluded from the public graph.</li><li>Changes are auditable through GitHub Issues and repository history.</li></ul><p><a href="https://github.com/shubhamturai/family-tree-community">Open the GitHub repository</a></p></div></section>
-</main><footer class="footer">Family Graph · GitHub Pages + GitHub Issues + GitHub Actions</footer>
+
+<section id="aboutView" class="view">
+  <h1>About this project</h1>
+  <p class="muted">This is a zero-server family genealogy community. GitHub Pages hosts the public graph, GitHub Issues hold proposals, and GitHub Actions can apply administrator-approved changes.</p>
+  <div class="card">
+    <h3>Data principles</h3>
+    <ul>
+      <li>Every person has an immutable ID.</li>
+      <li>Relationships use IDs, never names as identity.</li>
+      <li>Children retain birth order.</li>
+      <li>Life status is derived from death information where possible.</li>
+      <li>Deleting a person is a reviewed archive operation, not an irreversible hard delete.</li>
+      <li>Sensitive identity/contact data is intentionally excluded from the public graph.</li>
+      <li>Changes are auditable through GitHub Issues and repository history.</li>
+    </ul>
+    <p><a href="https://github.com/shubhamturai/family-tree-community">Open the GitHub repository</a></p>
+  </div>
+</section>
+</main>
+<footer class="footer">Family Graph · GitHub Pages + GitHub Issues + GitHub Actions</footer>
+
 <script>
-const REPO='shubhamturai/family-tree-community';let data,cy;
-const $=id=>document.getElementById(id),name=p=>p.displayName||[p.firstName,p.middleName,p.familyName].filter(Boolean).join(' ');
+const REPO='shubhamturai/family-tree-community';
+let data,cy,layoutMode='tree',focusId=null;
+const $=id=>document.getElementById(id);
+const name=p=>p.displayName||[p.firstName,p.middleName,p.familyName].filter(Boolean).join(' ');
+const active=p=>p && p.recordStatus!=='deleted';
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-async function init(){try{data=await fetch('./data/family.json',{cache:'no-store'}).then(r=>r.json());renderStats();populate();draw()}catch(e){$('cy').innerHTML='<div style="padding:30px;color:#b42318">Unable to load family data.</div>'}}
-function renderStats(){$('stats').innerHTML=[['People',data.persons.length],['Living',data.persons.filter(p=>!p.dateOfDeath&&p.lifeStatus==='alive').length],['Deceased',data.persons.filter(p=>p.dateOfDeath).length],['Parent-child',data.relationships.parentChild.length],['Spouses',data.relationships.spouses.length]].map(x=>'<div class="stat"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join('')}
-function draw(q=''){let visible=data.persons.filter(p=>!q||name(p).toLowerCase().includes(q.toLowerCase())),ids=new Set(visible.map(p=>p.id));let nodes=visible.map(p=>({data:{id:p.id,label:name(p),p}}));let edges=[];data.relationships.parentChild.forEach(r=>{if(ids.has(r.parentId)&&ids.has(r.childId))edges.push({data:{id:'pc'+r.parentId+r.childId,source:r.parentId,target:r.childId}})});data.relationships.spouses.forEach(r=>{if(ids.has(r.personAId)&&ids.has(r.personBId))edges.push({data:{id:'sp'+r.personAId+r.personBId,source:r.personAId,target:r.personBId,spouse:true}})});if(cy)cy.destroy();cy=cytoscape({container:$('cy'),elements:{nodes,edges},style:[{selector:'node',style:{'background-color':'#eeeaff','label':'data(label)','text-wrap':'wrap','text-max-width':'100px','text-valign':'center','text-halign':'center','font-size':11,'font-weight':700,width:62,height:62,'border-width':1,'border-color':'#b9c2d0'}},{selector:'edge',style:{'line-color':'#aeb8c6',width:2,'target-arrow-shape':'triangle','target-arrow-color':'#aeb8c6'}},{selector:'edge[spouse]',style:{'line-style':'dashed','line-color':'#8b78d8','target-arrow-shape':'none'}}],layout:{name:'cose',animate:false,nodeRepulsion:7000,idealEdgeLength:180,padding:40}});cy.on('tap','node',e=>show(e.target.data('p')))}
-function show(p){let parents=data.relationships.parentChild.filter(r=>r.childId===p.id).map(r=>(r.role||'parent')+': '+name(data.persons.find(x=>x.id===r.parentId))).join('<br>')||'Not recorded';let kids=data.relationships.parentChild.filter(r=>r.parentId===p.id).sort((a,b)=>a.order-b.order).map((r,i)=>(i+1)+'. '+name(data.persons.find(x=>x.id===r.childId))).join('<br>')||'None recorded';let spouses=data.relationships.spouses.filter(r=>r.personAId===p.id||r.personBId===p.id).map(r=>name(data.persons.find(x=>x.id===(r.personAId===p.id?r.personBId:r.personAId)))).join('<br>')||'None recorded';$('panel').innerHTML='<button class="close" onclick="$('+"'"+"panel"+"'"+').hidden=true">×</button><small>'+esc(p.id)+'</small><h2>'+esc(name(p))+'</h2><span class="pill">'+esc(p.dateOfDeath?'Deceased':(p.lifeStatus||'Unknown'))+'</span><p><b>Gender</b><br>'+esc(p.gender||'Not specified')+'</p><p><b>Birth</b><br>'+esc([p.dateOfBirth,p.birthPlace,p.birthRegion,p.birthCountry].filter(Boolean).join(' · ')||'Not specified')+'</p><p><b>Death</b><br>'+esc([p.dateOfDeath,p.deathPlace].filter(Boolean).join(' · ')||'Not specified')+'</p><p><b>Parents</b><br>'+esc(parents).replaceAll('&lt;br&gt;','<br>')+'</p><p><b>Spouses</b><br>'+esc(spouses).replaceAll('&lt;br&gt;','<br>')+'</p><p><b>Children</b><br>'+esc(kids).replaceAll('&lt;br&gt;','<br>')+'</p>'+(p.occupation?'<p><b>Occupation</b><br>'+esc(p.occupation)+'</p>':'')+'<button class="btn primary" onclick="suggest(\''+p.id+'\')">Suggest an update</button>';$('panel').hidden=false}
-function populate(){let opts='<option value="">Not applicable</option>'+data.persons.map(p=>'<option value="'+p.id+'">'+esc(name(p))+' · '+p.id+'</option>').join('');$('existing').innerHTML=opts}
-function suggest(id){$('type').value='UPDATE_PERSON';$('existing').value=id;switchView('contributeView');let p=data.persons.find(x=>x.id===id);['firstName','middleName','familyName','displayName','gender','dob','dod','birthPlace','birthRegion','birthCountry','deathPlace','location','occupation'].forEach((k)=>{let el=$(k);if(el)el.value=k==='dob'?p.dateOfBirth||'':k==='dod'?p.dateOfDeath||'':p[k==='location'?'currentLocation':k]||''})}
+
+async function init(){
+  try{
+    data=await fetch('./data/family.json',{cache:'no-store'}).then(r=>r.json());
+    data.persons=(data.persons||[]).filter(active);
+    renderStats();populate();draw();
+  }catch(e){
+    $('cy').innerHTML='<div style="padding:30px;color:#b42318">Unable to load family data.</div>';
+    console.error(e);
+  }
+}
+
+function renderStats(){
+  const people=data.persons;
+  $('stats').innerHTML=[
+    ['People',people.length],
+    ['Living',people.filter(p=>!p.dateOfDeath&&p.lifeStatus==='alive').length],
+    ['Deceased',people.filter(p=>p.dateOfDeath).length],
+    ['Parent-child',data.relationships.parentChild.filter(r=>byId(r.parentId)&&byId(r.childId)).length],
+    ['Spouses',data.relationships.spouses.filter(r=>byId(r.personAId)&&byId(r.personBId)).length]
+  ].map(x=>'<div class="stat"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join('');
+}
+
+function byId(id){return data.persons.find(p=>p.id===id)}
+function parentEdges(){return data.relationships.parentChild.filter(r=>byId(r.parentId)&&byId(r.childId))}
+function spouseEdges(){return data.relationships.spouses.filter(r=>byId(r.personAId)&&byId(r.personBId))}
+
+function hierarchyPositions(ids){
+  const parents=new Map(), children=new Map(), levels=new Map();
+  ids.forEach(id=>{parents.set(id,[]);children.set(id,[])});
+  parentEdges().forEach(r=>{
+    if(ids.has(r.parentId)&&ids.has(r.childId)){
+      children.get(r.parentId).push(r);
+      parents.get(r.childId).push(r);
+    }
+  });
+  const roots=[...ids].filter(id=>parents.get(id).length===0);
+  const queue=[...roots];
+  roots.forEach(id=>levels.set(id,0));
+  while(queue.length){
+    const id=queue.shift();
+    for(const r of children.get(id).sort((a,b)=>(a.order||999)-(b.order||999))){
+      const nl=(levels.get(id)||0)+1;
+      if(!levels.has(r.childId)||nl>levels.get(r.childId)){levels.set(r.childId,nl);queue.push(r.childId)}
+    }
+  }
+  [...ids].forEach(id=>{if(!levels.has(id))levels.set(id,0)});
+  const byLevel=new Map();
+  levels.forEach((l,id)=>{if(!byLevel.has(l))byLevel.set(l,[]);byLevel.get(l).push(id)});
+  const pos={}; const xGap=170, yGap=150;
+  [...byLevel.keys()].sort((a,b)=>a-b).forEach(level=>{
+    const arr=byLevel.get(level).sort((a,b)=>{
+      const pa=children.get(a).length, pb=children.get(b).length;
+      return pa-pb || name(byId(a)).localeCompare(name(byId(b)));
+    });
+    let x=0;
+    arr.forEach(id=>{
+      pos[id]={x:x,y:level*yGap};
+      x+=xGap;
+      const sp=spouseEdges().filter(r=>r.personAId===id||r.personBId===id);
+      sp.forEach(r=>{
+        const sid=r.personAId===id?r.personBId:r.personAId;
+        if(ids.has(sid) && !pos[sid] && levels.get(sid)===level){pos[sid]={x:x,y:level*yGap};x+=xGap}
+      });
+    });
+  });
+  let minX=Infinity,minY=Infinity; Object.values(pos).forEach(p=>{minX=Math.min(minX,p.x);minY=Math.min(minY,p.y)});
+  Object.values(pos).forEach(p=>{p.x-=minX-90;p.y-=minY-90});
+  return pos;
+}
+
+function draw(q=''){
+  const visible=data.persons.filter(p=>!q||name(p).toLowerCase().includes(q.toLowerCase()));
+  const ids=new Set(visible.map(p=>p.id));
+  const nodes=visible.map(p=>({data:{id:p.id,label:name(p),p}}));
+  const edges=[];
+  parentEdges().forEach(r=>{if(ids.has(r.parentId)&&ids.has(r.childId))edges.push({data:{id:'pc'+r.parentId+r.childId,source:r.parentId,target:r.childId}})});
+  spouseEdges().forEach(r=>{if(ids.has(r.personAId)&&ids.has(r.personBId))edges.push({data:{id:'sp'+r.personAId+r.personBId,source:r.personAId,target:r.personBId,spouse:true}})});
+  if(cy)cy.destroy();
+  $('layoutTitle').textContent=layoutMode==='tree'?'Hierarchical tree':'Network graph';
+  const opts={
+    container:$('cy'),elements:{nodes,edges},
+    style:[
+      {selector:'node',style:{'background-color':'#eeeaff','label':'data(label)','text-wrap':'wrap','text-max-width':'110px','text-valign':'center','text-halign':'center','font-size':11,'font-weight':700,width:78,height:58,'border-width':1,'border-color':'#b9c2d0','color':'#182034'}},
+      {selector:'edge',style:{'line-color':'#aeb8c6',width:2,'target-arrow-shape':'triangle','target-arrow-color':'#aeb8c6','curve-style':'bezier'}},
+      {selector:'edge[spouse]',style:{'line-style':'dashed','line-color':'#8b78d8','target-arrow-shape':'none'}}
+    ]
+  };
+  if(layoutMode==='tree'){
+    opts.layout={name:'preset',positions:hierarchyPositions(ids),fit:true,padding:80};
+  }else{
+    opts.layout={name:'cose',animate:false,nodeRepulsion:7000,idealEdgeLength:180,padding:40};
+  }
+  cy=cytoscape(opts);
+  cy.on('tap','node',e=>show(e.target.data('p')));
+}
+
+function show(p){
+  focusId=p.id;
+  const parents=parentEdges().filter(r=>r.childId===p.id).map(r=>(r.role||'parent')+': '+name(byId(r.parentId))).join('<br>')||'Not recorded';
+  const kids=parentEdges().filter(r=>r.parentId===p.id).sort((a,b)=>(a.order||999)-(b.order||999)).map((r,i)=>(i+1)+'. '+name(byId(r.childId))).join('<br>')||'None recorded';
+  const spouses=spouseEdges().filter(r=>r.personAId===p.id||r.personBId===p.id).map(r=>name(byId(r.personAId===p.id?r.personBId:r.personAId))).join('<br>')||'None recorded';
+  $('panel').innerHTML=
+    '<button class="close" onclick="$('+"'"+'panel'+"'"+').hidden=true">×</button>'+
+    '<small>'+esc(p.id)+'</small><h2>'+esc(name(p))+'</h2>'+
+    '<span class="pill">'+esc(p.dateOfDeath?'Deceased':(p.lifeStatus||'Unknown'))+'</span>'+
+    '<p><b>Gender</b><br>'+esc(p.gender||'Not specified')+'</p>'+
+    '<p><b>Birth</b><br>'+esc([p.dateOfBirth,p.birthPlace,p.birthRegion,p.birthCountry].filter(Boolean).join(' · ')||'Not specified')+'</p>'+
+    '<p><b>Death</b><br>'+esc([p.dateOfDeath,p.deathPlace].filter(Boolean).join(' · ')||'Not specified')+'</p>'+
+    '<p><b>Parents</b><br>'+esc(parents).replaceAll('&lt;br&gt;','<br>')+'</p>'+
+    '<p><b>Spouses</b><br>'+esc(spouses).replaceAll('&lt;br&gt;','<br>')+'</p>'+
+    '<p><b>Children</b><br>'+esc(kids).replaceAll('&lt;br&gt;','<br>')+'</p>'+
+    (p.occupation?'<p><b>Occupation</b><br>'+esc(p.occupation)+'</p>':'')+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<button class="btn primary" onclick="suggest(\''+p.id+'\')">✎ Update</button>'+
+      '<button class="btn danger" onclick="prepareDelete(\''+p.id+'\')">🗑 Delete</button>'+
+    '</div>';
+  $('panel').hidden=false;
+}
+
+function populate(){
+  const opts='<option value="">Not applicable</option>'+data.persons.map(p=>'<option value="'+p.id+'">'+esc(name(p))+' · '+p.id+'</option>').join('');
+  $('existing').innerHTML=opts;
+}
+
+function clearPersonFields(){
+  ['firstName','middleName','familyName','displayName','dob','dod','birthPlace','birthRegion','birthCountry','deathPlace','location','occupation'].forEach(k=>$(k).value='');
+  $('gender').value='';
+}
+
+function suggest(id){
+  $('type').value='UPDATE_PERSON'; $('existing').value=id; switchView('contributeView');
+  const p=byId(id);
+  ['firstName','middleName','familyName','displayName','gender','dob','dod','birthPlace','birthRegion','birthCountry','deathPlace','location','occupation'].forEach(k=>{
+    const el=$(k); if(!el)return;
+    el.value=k==='dob'?(p.dateOfBirth||''):k==='dod'?(p.dateOfDeath||''):p[k==='location'?'currentLocation':k]||''
+  });
+  updateFormMode();
+}
+
+function prepareDelete(id){
+  $('type').value='DELETE_PERSON';$('existing').value=id;switchView('contributeView');clearPersonFields();
+  $('reason').value='Request deletion/archive of '+name(byId(id))+' ('+id+') from the public family tree.';
+  updateFormMode();
+}
+
+function updateFormMode(){
+  const op=$('type').value, isDelete=op==='DELETE_PERSON', isUpdate=op==='UPDATE_PERSON';
+  $('deleteNotice').style.display=isDelete?'block':'none';
+  ['firstName','middleName','familyName','displayName','gender','dob','dod','birthPlace','birthRegion','birthCountry','deathPlace','location','occupation'].forEach(k=>{
+    const el=$(k); if(el) el.disabled=isDelete||isUpdate===false&&false;
+  });
+  if(isDelete){
+    ['firstName','middleName','familyName','displayName','gender','dob','dod','birthPlace','birthRegion','birthCountry','deathPlace','location','occupation'].forEach(k=>$(k).value='');
+  }
+}
+
 function switchView(id){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.view===id))}
-document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>switchView(b.dataset.view));$('search').oninput=e=>draw(e.target.value);$('reset').onclick=()=>{$('search').value='';draw()};$('form').onsubmit=e=>{e.preventDefault();let op=$('type').value,p={personId:$('existing').value||undefined,firstName:$('firstName').value.trim(),middleName:$('middleName').value.trim(),familyName:$('familyName').value.trim(),displayName:$('displayName').value.trim(),gender:$('gender').value,dateOfBirth:$('dob').value,dateOfDeath:$('dod').value,birthPlace:$('birthPlace').value.trim(),birthRegion:$('birthRegion').value.trim(),birthCountry:$('birthCountry').value.trim(),deathPlace:$('deathPlace').value.trim(),currentLocation:$('location').value.trim(),occupation:$('occupation').value.trim()};Object.keys(p).forEach(k=>p[k]===''&&delete p[k]);let block='FG_PROPOSAL\n'+JSON.stringify({operation:op,payload:p},null,2)+'\nFG_PROPOSAL';let title=encodeURIComponent('[Family Graph] '+op);let body=encodeURIComponent(block+'\n\nEvidence/context:\n'+$('source').value+'\n\nReason:\n'+$('reason').value+'\n\nDo not include sensitive personal data.');window.open('https://github.com/'+REPO+'/issues/new?title='+title+'&body='+body,'_blank');$('formStatus').textContent='GitHub opened in a new tab. Review and submit the issue there.'};init();
-</script></body></html>
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>switchView(b.dataset.view));
+$('search').oninput=e=>draw(e.target.value);
+$('reset').onclick=()=>{$('search').value='';draw()};
+$('treeMode').onclick=()=>{layoutMode='tree';draw($('search').value)};
+$('networkMode').onclick=()=>{layoutMode='network';draw($('search').value)};
+$('addPersonBtn').onclick=()=>{$('type').value='ADD_PERSON';$('existing').value='';clearPersonFields();$('reason').value='';switchView('contributeView');updateFormMode()};
+$('type').onchange=updateFormMode;
+
+$('form').onsubmit=e=>{
+  e.preventDefault();
+  const op=$('type').value;
+  const p={personId:$('existing').value||undefined,firstName:$('firstName').value.trim(),middleName:$('middleName').value.trim(),familyName:$('familyName').value.trim(),displayName:$('displayName').value.trim(),gender:$('gender').value,dateOfBirth:$('dob').value,dateOfDeath:$('dod').value,birthPlace:$('birthPlace').value.trim(),birthRegion:$('birthRegion').value.trim(),birthCountry:$('birthCountry').value.trim(),deathPlace:$('deathPlace').value.trim(),currentLocation:$('location').value.trim(),occupation:$('occupation').value.trim()};
+  if(op==='DELETE_PERSON' && !p.personId){$('formStatus').textContent='Select the person to delete.';return}
+  Object.keys(p).forEach(k=>{if(p[k]===''||p[k]===undefined)delete p[k]});
+  if(op==='ADD_PERSON' && !p.displayName&&!p.firstName){$('formStatus').textContent='Enter a name first.';return}
+  const block='FG_PROPOSAL\n'+JSON.stringify({operation:op,payload:p},null,2)+'\nFG_PROPOSAL';
+  const title=encodeURIComponent('[Family Graph] '+op);
+  const body=encodeURIComponent(block+'\n\nEvidence/context:\n'+$('source').value+'\n\nReason:\n'+$('reason').value+'\n\nDo not include sensitive personal data.');
+  window.open('https://github.com/'+REPO+'/issues/new?title='+title+'&body='+body,'_blank');
+  $('formStatus').textContent='GitHub opened in a new tab. Review and submit the issue there.';
+};
+
+init();
+</script>
+</body>
+</html>
