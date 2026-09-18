@@ -1,46 +1,48 @@
 {
   "schemaVersion": 1,
-  "lastUpdated": "2026-09-19T00:00:00+05:30",
+  "lastUpdated": "2026-09-18T20:00:32.569Z",
   "persons": [
     {
       "id": "P000001",
-      "firstName": "Ramesh",
-      "middleName": null,
-      "familyName": "Rao",
-      "displayName": "Ramesh Rao",
-      "nickname": null,
-      "maidenName": null,
+      "firstName": "Subhash",
+      "middleName": "",
+      "familyName": "Turai",
+      "displayName": "Subhash Turai",
+      "nickname": "",
+      "maidenName": "",
       "gender": "male",
-      "dateOfBirth": "1945-02-10",
-      "dateOfDeath": null,
-      "lifeStatus": "alive",
+      "dateOfBirth": "1966-05-25",
+      "dateOfDeath": "2026-08-14",
+      "lifeStatus": "deceased",
       "birthPlace": "Hyderabad",
       "birthRegion": "Telangana",
       "birthCountry": "India",
-      "deathPlace": null,
+      "deathPlace": "NIMS, Hyderabad",
       "currentLocation": "Hyderabad, Telangana",
       "occupation": "",
-      "notes": "Demo data — replace with the real family tree."
+      "notes": "Founder of family tree idea",
+      "recordStatus": "active"
     },
     {
       "id": "P000002",
-      "firstName": "Lakshmi",
-      "middleName": null,
-      "familyName": "Rao",
-      "displayName": "Lakshmi Rao",
-      "nickname": null,
-      "maidenName": null,
+      "firstName": "Swathi",
+      "middleName": "",
+      "familyName": "Turai",
+      "displayName": "Swathi Turai",
+      "nickname": "",
+      "maidenName": "",
       "gender": "female",
-      "dateOfBirth": "1948-08-11",
-      "dateOfDeath": null,
-      "lifeStatus": "alive",
-      "birthPlace": "Warangal",
+      "dateOfBirth": "1969-07-21",
+      "dateOfDeath": "2022-09-15",
+      "lifeStatus": "deceased",
+      "birthPlace": "Hyderabad",
       "birthRegion": "Telangana",
       "birthCountry": "India",
-      "deathPlace": null,
+      "deathPlace": "TK, Hyderabad",
       "currentLocation": "Hyderabad, Telangana",
       "occupation": "",
-      "notes": "Demo data"
+      "notes": "",
+      "recordStatus": "active"
     },
     {
       "id": "P000003",
@@ -142,18 +144,70 @@
   ],
   "relationships": {
     "parentChild": [
-      {"parentId":"P000001","childId":"P000003","role":"father","order":1},
-      {"parentId":"P000002","childId":"P000003","role":"mother","order":1},
-      {"parentId":"P000003","childId":"P000005","role":"father","order":1},
-      {"parentId":"P000004","childId":"P000005","role":"mother","order":1},
-      {"parentId":"P000003","childId":"P000006","role":"father","order":2},
-      {"parentId":"P000004","childId":"P000006","role":"mother","order":2},
-      {"parentId":"P000003","childId":"P000007","role":"father","order":3},
-      {"parentId":"P000004","childId":"P000007","role":"mother","order":3}
+      {
+        "parentId": "P000001",
+        "childId": "P000003",
+        "role": "father",
+        "order": 1
+      },
+      {
+        "parentId": "P000002",
+        "childId": "P000003",
+        "role": "mother",
+        "order": 1
+      },
+      {
+        "parentId": "P000003",
+        "childId": "P000005",
+        "role": "father",
+        "order": 1
+      },
+      {
+        "parentId": "P000004",
+        "childId": "P000005",
+        "role": "mother",
+        "order": 1
+      },
+      {
+        "parentId": "P000003",
+        "childId": "P000006",
+        "role": "father",
+        "order": 2
+      },
+      {
+        "parentId": "P000004",
+        "childId": "P000006",
+        "role": "mother",
+        "order": 2
+      },
+      {
+        "parentId": "P000003",
+        "childId": "P000007",
+        "role": "father",
+        "order": 3
+      },
+      {
+        "parentId": "P000004",
+        "childId": "P000007",
+        "role": "mother",
+        "order": 3
+      }
     ],
     "spouses": [
-      {"personAId":"P000001","personBId":"P000002","order":1,"marriageDate":null,"divorceDate":null},
-      {"personAId":"P000003","personBId":"P000004","order":1,"marriageDate":null,"divorceDate":null}
+      {
+        "personAId": "P000001",
+        "personBId": "P000002",
+        "order": 1,
+        "marriageDate": null,
+        "divorceDate": null
+      },
+      {
+        "personAId": "P000003",
+        "personBId": "P000004",
+        "order": 1,
+        "marriageDate": null,
+        "divorceDate": null
+      }
     ]
   }
 }
