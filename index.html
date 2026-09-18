@@ -97,8 +97,8 @@ label{display:grid;gap:6px;font-weight:700}
         <label>Gender
           <select id="gender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option><option value="unknown">Unknown</option></select>
         </label>
-        <label>Date of birth<input id="dob" type="date"></label>
-        <label>Date of death<input id="dod" type="date"></label>
+        <label>Date of birth (DD/MM/YYYY)<input id="dob" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/YYYY"></label>
+        <label>Date of death (DD/MM/YYYY)<input id="dod" type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="DD/MM/YYYY"></label>
         <label>Birth place<input id="birthPlace"></label>
         <label>Birth region/state<input id="birthRegion"></label>
         <label>Birth country<input id="birthCountry"></label>
@@ -147,7 +147,7 @@ let data,cy,layoutMode='tree',focusId=null;
 const $=id=>document.getElementById(id);
 const name=p=>p.displayName||[p.firstName,p.middleName,p.familyName].filter(Boolean).join(' ');
 const active=p=>p && p.recordStatus!=='deleted';
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}\nfunction formatDate(iso){if(!iso)return '';const p=String(iso).split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:iso}\nfunction parseDate(input){if(!input)return '';const s=String(input).trim();const m=s.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);if(!m)return null;const d=Number(m[1]),mo=Number(m[2]),y=Number(m[3]);const dt=new Date(Date.UTC(y,mo-1,d));if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==d)return null;return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
 
 async function init(){
   try{
@@ -255,8 +255,8 @@ function show(p){
     '<small>'+esc(p.id)+'</small><h2>'+esc(name(p))+'</h2>'+
     '<span class="pill">'+esc(p.dateOfDeath?'Deceased':(p.lifeStatus||'Unknown'))+'</span>'+
     '<p><b>Gender</b><br>'+esc(p.gender||'Not specified')+'</p>'+
-    '<p><b>Birth</b><br>'+esc([p.dateOfBirth,p.birthPlace,p.birthRegion,p.birthCountry].filter(Boolean).join(' · ')||'Not specified')+'</p>'+
-    '<p><b>Death</b><br>'+esc([p.dateOfDeath,p.deathPlace].filter(Boolean).join(' · ')||'Not specified')+'</p>'+
+    '<p><b>Birth</b><br>'+esc([formatDate(p.dateOfBirth),p.birthPlace,p.birthRegion,p.birthCountry].filter(Boolean).join(' · ')||'Not specified')+'</p>'+
+    '<p><b>Death</b><br>'+esc([formatDate(p.dateOfDeath),p.deathPlace].filter(Boolean).join(' · ')||'Not specified')+'</p>'+
     '<p><b>Parents</b><br>'+esc(parents).replaceAll('&lt;br&gt;','<br>')+'</p>'+
     '<p><b>Spouses</b><br>'+esc(spouses).replaceAll('&lt;br&gt;','<br>')+'</p>'+
     '<p><b>Children</b><br>'+esc(kids).replaceAll('&lt;br&gt;','<br>')+'</p>'+
@@ -283,7 +283,7 @@ function suggest(id){
   const p=byId(id);
   ['firstName','middleName','familyName','displayName','gender','dob','dod','birthPlace','birthRegion','birthCountry','deathPlace','location','occupation'].forEach(k=>{
     const el=$(k); if(!el)return;
-    el.value=k==='dob'?(p.dateOfBirth||''):k==='dod'?(p.dateOfDeath||''):p[k==='location'?'currentLocation':k]||''
+    el.value=k==='dob'?formatDate(p.dateOfBirth):k==='dod'?formatDate(p.dateOfDeath):p[k==='location'?'currentLocation':k]||''
   });
   updateFormMode();
 }
