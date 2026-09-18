@@ -44,6 +44,17 @@ table{width:100%;border-collapse:collapse}th,td{padding:9px;text-align:left;bord
 </section>
 
 <section id="editor" class="hidden">
+<div class="card" id="reviewCard">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+    <div>
+      <h2 style="margin-bottom:5px">Community edit requests</h2>
+      <p class="muted" style="margin-top:0">Review proposals submitted by contributors. You can edit the proposed change before approving it, request changes, or reject it.</p>
+    </div>
+    <button id="refreshRequests" class="btn">↻ Refresh requests</button>
+  </div>
+  <div id="issuesStatus" class="status" style="margin:12px 0">Load requests after GitHub is connected.</div>
+  <div id="requestsList"></div>
+</div>
 <div class="card">
   <h2>Direct family editing</h2>
   <p class="muted">These changes bypass the community proposal queue and commit directly to <code>main</code>. Use this during the initial family-tree bootstrap and for later trusted administration.</p>
@@ -131,11 +142,113 @@ function enc64(text){const b=new TextEncoder().encode(text);let out='';for(let i
 function dec64(text){const b=Uint8Array.from(atob(text.replace(/\n/g,'')),c=>c.charCodeAt(0));return new TextDecoder().decode(b)}
 async function connectRepo(){
  token=$('token').value.trim();if(!token){$('tokenStatus').textContent='Enter the repository-scoped token.';return}
- try{await gh('/repos/'+OWNER+'/'+REPO);await loadData();$('tokenStatus').textContent='GitHub connected. Direct editing enabled.';$('tokenStatus').className='status ok';$('editor').classList.remove('hidden');}
+ try{await gh('/repos/'+OWNER+'/'+REPO);await loadData();await loadPendingRequests();$('tokenStatus').textContent='GitHub connected. Direct editing and request review enabled.';$('tokenStatus').className='status ok';$('editor').classList.remove('hidden');}
  catch(e){token='';$('tokenStatus').textContent='GitHub connection failed: '+e.message;$('tokenStatus').className='status dangerText'}
 }
 async function loadData(){const f=await gh('/repos/'+OWNER+'/'+REPO+'/contents/'+PATH+'?ref='+BRANCH);fileSha=f.sha;data=JSON.parse(dec64(f.content));data.persons ||= [];data.relationships ||= {parentChild:[],spouses:[]};data.relationships.parentChild ||= [];data.relationships.spouses ||= [];populate();renderTable();setStatus('Loaded '+data.persons.filter(active).length+' active people.')}
-function setStatus(s,bad=false){$('status').textContent=s;$('status').className='status'+(bad?' dangerText':'')}
+
+let pendingRequests=[];
+function renderRequests(){
+  const box=$('requestsList');
+  if(!pendingRequests.length){box.innerHTML='<div class="notice">No pending community requests.</div>';return}
+  box.innerHTML=pendingRequests.map(issue=>{
+    const m=(issue.body||'').match(/FG_PROPOSAL\\s*\\n([\\s\\S]*?)\\nFG_PROPOSAL/);
+    let proposal={operation:'UNKNOWN',payload:{}},valid=true;
+    try{if(!m)throw new Error('Missing FG_PROPOSAL');proposal=JSON.parse(m[1])}catch(e){valid=false}
+    const p=proposal.payload||{};
+    const summary=proposal.operation==='ADD_PERSON' ? (p.displayName||[p.firstName,p.middleName,p.familyName].filter(Boolean).join(' ')) : proposal.operation==='UPDATE_PERSON' ? (p.personId||'Unknown person') : proposal.operation==='DELETE_PERSON' ? (p.personId||'Unknown person') : proposal.operation;
+    return '<div class="card" style="background:#fafbff">'+
+      '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>#'+issue.number+' · '+escapeHtml(issue.title||'')+'</b><div class="small muted">Submitted '+escapeHtml(new Date(issue.created_at).toLocaleString())+' · @'+escapeHtml(issue.user?.login||'unknown')+'</div></div><span class="status">'+escapeHtml(proposal.operation||'UNKNOWN')+'</span></div>'+
+      '<p><b>Summary:</b> '+escapeHtml(summary||'—')+'</p>'+
+      (!valid?'<div class="notice dangerText">This request is malformed and cannot be approved until corrected.</div>':'')+
+      '<label>Edit proposal JSON<div class="hint">Edit only the proposal object. Dates must remain ISO <code>YYYY-MM-DD</code> in the proposal JSON.</div><textarea id="issue-json-'+issue.number+'" rows="14" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">'+escapeHtml(JSON.stringify(proposal,null,2))+'</textarea></label>'+
+      '<div class="toolbar" style="margin-top:10px">'+
+      '<button class="btn" onclick="saveRequestEdit('+issue.number+')">Save edit</button>'+
+      '<button class="btn primary" onclick="approveRequest('+issue.number+')">Approve</button>'+
+      '<button class="btn" onclick="requestChanges('+issue.number+')">Request changes</button>'+
+      '<button class="btn danger" onclick="rejectRequest('+issue.number+')">Reject</button>'+
+      '<a class="btn" target="_blank" href="'+escapeAttr(issue.html_url||'#')+'">Open GitHub issue</a>'+
+      '</div>'+
+      '<div id="issue-msg-'+issue.number+'" class="status" style="margin-top:10px">No action taken.</div>'+
+    '</div>';
+  }).join('');
+}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function escapeAttr(s){return escapeHtml(s).replace(/'/g,'&#39;')}
+async function loadPendingRequests(){
+  if(!token){return}
+  $('issuesStatus').textContent='Loading pending requests…';
+  try{
+    const items=await gh('/repos/'+OWNER+'/'+REPO+'/issues?state=open&labels=family%3Apending&per_page=100&sort=created&direction=asc');
+    pendingRequests=items.filter(x=>!x.pull_request);
+    renderRequests();
+    $('issuesStatus').textContent=pendingRequests.length+' pending request(s).';
+  }catch(e){$('issuesStatus').textContent='Could not load requests: '+e.message;$('issuesStatus').className='status dangerText'}
+}
+function proposalFromEditor(issueNumber){
+  const raw=$('issue-json-'+issueNumber)?.value||'';
+  let proposal;
+  try{proposal=JSON.parse(raw)}catch(e){throw new Error('Proposal JSON is invalid: '+e.message)}
+  if(!proposal||typeof proposal!=='object'||typeof proposal.operation!=='string'||typeof proposal.payload!=='object')throw new Error('Proposal must contain operation and payload.');
+  return proposal;
+}
+function replaceProposalBody(body,proposal,adminNote){
+  const marker=/FG_PROPOSAL\\s*\\n([\\s\\S]*?)\\nFG_PROPOSAL/;
+  const block='FG_PROPOSAL\\n'+JSON.stringify(proposal,null,2)+'\\nFG_PROPOSAL';
+  if(marker.test(body)) return body.replace(marker,block)+(adminNote?'\\n\\n---\\nAdmin review note:\\n'+adminNote:'');
+  return block+'\\n\\n'+(body||'')+(adminNote?'\\n\\n---\\nAdmin review note:\\n'+adminNote:'');
+}
+function issueLabels(issue,primary){return Array.from(new Set(['family:'+primary]))}
+async function updateRequestIssue(issueNumber,proposal,primary,note,state=null){
+  const issue=pendingRequests.find(x=>x.number===issueNumber);
+  if(!issue)throw new Error('Request no longer appears in the pending list.');
+  const body=replaceProposalBody(issue.body||'',proposal,note);
+  const payload={body,labels:issueLabels(issue,primary)};
+  if(state)payload.state=state;
+  const updated=await gh('/repos/'+OWNER+'/'+REPO+'/issues/'+issueNumber,{method:'PATCH',body:JSON.stringify(payload)});
+  const idx=pendingRequests.findIndex(x=>x.number===issueNumber);
+  if(primary!=='pending')pendingRequests.splice(idx,1); else pendingRequests[idx]=updated;
+  renderRequests();
+  return updated;
+}
+async function saveRequestEdit(issueNumber){
+  try{
+    const proposal=proposalFromEditor(issueNumber);
+    const issue=pendingRequests.find(x=>x.number===issueNumber);
+    await updateRequestIssue(issueNumber,proposal,'pending','Admin edited the proposal and returned it to the pending queue.');
+    setStatus('Request #'+issueNumber+' updated. It remains pending approval.');
+  }catch(e){const el=$('issue-msg-'+issueNumber);if(el){el.textContent=e.message;el.className='status dangerText'}}
+}
+async function approveRequest(issueNumber){
+  try{
+    const proposal=proposalFromEditor(issueNumber);
+    const issue=pendingRequests.find(x=>x.number===issueNumber);
+    const msg='Approved by admin. The approved proposal will now be validated and applied automatically.';
+    const updated=await updateRequestIssue(issueNumber,proposal,'approved',msg);
+    await gh('/repos/'+OWNER+'/'+REPO+'/issues/'+issueNumber+'/comments',{method:'POST',body:JSON.stringify({body:'✅ Approved from the Admin Portal. The proposal was reviewed and will be applied by the family-graph workflow.'})});
+    setStatus('Request #'+issueNumber+' approved. GitHub Actions will apply it.');
+  }catch(e){const el=$('issue-msg-'+issueNumber);if(el){el.textContent='Approval failed: '+e.message;el.className='status dangerText'}}
+}
+async function requestChanges(issueNumber){
+  const note=prompt('What changes should the contributor make?');
+  if(!note?.trim())return;
+  try{
+    const proposal=proposalFromEditor(issueNumber);
+    await gh('/repos/'+OWNER+'/'+REPO+'/issues/'+issueNumber+'/comments',{method:'POST',body:JSON.stringify({body:'📝 Changes requested by admin from the Admin Portal:\\n\\n'+note.trim()})});
+    await updateRequestIssue(issueNumber,proposal,'needs-changes','Admin requested changes: '+note.trim());
+    setStatus('Request #'+issueNumber+' returned for changes.');
+  }catch(e){const el=$('issue-msg-'+issueNumber);if(el){el.textContent='Request-changes failed: '+e.message;el.className='status dangerText'}}
+}
+async function rejectRequest(issueNumber){
+  const note=prompt('Reason for rejection (optional):')||'Rejected by admin.';
+  try{
+    const proposal=proposalFromEditor(issueNumber);
+    await gh('/repos/'+OWNER+'/'+REPO+'/issues/'+issueNumber+'/comments',{method:'POST',body:JSON.stringify({body:'❌ Rejected by admin from the Admin Portal.\\n\\n'+note.trim()})});
+    await updateRequestIssue(issueNumber,proposal,'rejected',note.trim(), 'closed');
+    setStatus('Request #'+issueNumber+' rejected and closed.');
+  }catch(e){const el=$('issue-msg-'+issueNumber);if(el){el.textContent='Rejection failed: '+e.message;el.className='status dangerText'}}
+}
+\nfunction setStatus(s,bad=false){$('status').textContent=s;$('status').className='status'+(bad?' dangerText':'')}
 function nextId(){return 'P'+String(Math.max(0,...data.persons.map(p=>Number(String(p.id).slice(1))||0))+1).padStart(6,'0')}
 async function commitData(message){data.lastUpdated=new Date().toISOString();const r=await gh('/repos/'+OWNER+'/'+REPO+'/contents/'+PATH,{method:'PUT',body:JSON.stringify({message,content:enc64(JSON.stringify(data,null,2)+'\n'),sha:fileSha,branch:BRANCH})});fileSha=r.content.sha;populate();renderTable();setStatus('Saved directly: '+message)}
 function populate(){
