@@ -1,0 +1,30 @@
+name: Ensure family labels
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  issues: write
+  contents: read
+jobs:
+  labels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = [
+              ['family:pending','Community proposal awaiting review'],
+              ['family:approved','Approved by an administrator'],
+              ['family:rejected','Proposal rejected'],
+              ['family:applied','Approved proposal applied'],
+              ['family:error','Proposal failed validation']
+            ];
+            for (const [name,description] of labels) {
+              try {
+                await github.rest.issues.getLabel({owner:context.repo.owner,repo:context.repo.repo,name});
+              } catch(e) {
+                if(e.status===404) await github.rest.issues.createLabel({owner:context.repo.owner,repo:context.repo.repo,name,color:'6f42c1',description});
+                else throw e;
+              }
+            }
