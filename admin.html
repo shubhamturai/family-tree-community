@@ -248,7 +248,7 @@ async function rejectRequest(issueNumber){
     setStatus('Request #'+issueNumber+' rejected and closed.');
   }catch(e){const el=$('issue-msg-'+issueNumber);if(el){el.textContent='Rejection failed: '+e.message;el.className='status dangerText'}}
 }
-\nfunction setStatus(s,bad=false){$('status').textContent=s;$('status').className='status'+(bad?' dangerText':'')}
+function setStatus(s,bad=false){$('status').textContent=s;$('status').className='status'+(bad?' dangerText':'')}
 function nextId(){return 'P'+String(Math.max(0,...data.persons.map(p=>Number(String(p.id).slice(1))||0))+1).padStart(6,'0')}
 async function commitData(message){data.lastUpdated=new Date().toISOString();const r=await gh('/repos/'+OWNER+'/'+REPO+'/contents/'+PATH,{method:'PUT',body:JSON.stringify({message,content:enc64(JSON.stringify(data,null,2)+'\n'),sha:fileSha,branch:BRANCH})});fileSha=r.content.sha;populate();renderTable();setStatus('Saved directly: '+message)}
 function populate(){
@@ -267,6 +267,7 @@ $('login').onclick=login;$('changePassword').onclick=changePassword;
 $('password').onkeydown=e=>{if(e.key==='Enter')login()};
 $('logout').onclick=()=>{token='';data=null;fileSha='';$('password').value='';$('token').value='';$('editor').classList.add('hidden');$('tokenCard').classList.add('hidden');$('logout').classList.add('hidden');$('changePassword').classList.add('hidden');setLoginStatus('Locked.');};
 $('connect').onclick=connectRepo;$('personSelect').onchange=e=>fillPerson(e.target.value);$('newPerson').onclick=clearPerson;
+$('refreshRequests').onclick=loadPendingRequests;
 $('savePerson').onclick=async()=>{
  try{
   const id=$('personSelect').value,dob=parseDate($('dob').value),dod=parseDate($('dod').value);
