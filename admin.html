@@ -1,291 +1,118 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Family Graph — Admin</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Family Graph — Admin Studio</title>
+<script src="https://unpkg.com/cytoscape@3.33.1/dist/cytoscape.min.js"></script>
+<script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+<script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 <style>
-:root{--bg:#f5f7fb;--card:#fff;--text:#182034;--muted:#687083;--line:#dfe3ec;--primary:#5746e8;--danger:#b42318;--dangerBg:#fff1f0;--ok:#087443;--okBg:#ecfdf3}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,sans-serif}
-header{background:#fff;border-bottom:1px solid var(--line);padding:15px 22px;display:flex;justify-content:space-between;align-items:center;gap:15px}.brand{font-size:18px;font-weight:850}
-main{max-width:1250px;margin:auto;padding:25px 20px 60px}.card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:18px;margin-bottom:16px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.full{grid-column:1/-1}
-label{display:grid;gap:6px;font-weight:700}input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:9px;background:#fff}
-.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 13px;cursor:pointer;font-weight:750}.primary{background:var(--primary);color:#fff;border-color:var(--primary)}.danger{background:var(--dangerBg);color:var(--danger);border-color:#efb0aa}.ok{background:var(--okBg);color:var(--ok);border-color:#a6d7b9}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap}.muted{color:var(--muted);line-height:1.5}.notice{padding:13px;border:1px solid #efd59d;background:#fff8e8;border-radius:10px}.status{padding:11px;border-radius:9px;background:#eef2f7;color:var(--muted)}.hidden{display:none}.dangerText{color:var(--danger)}
-table{width:100%;border-collapse:collapse}th,td{padding:9px;text-align:left;border-bottom:1px solid var(--line)}.small{font-size:12px}
-@media(max-width:800px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+:root{--bg:#070b14;--panel:#0e1523;--card:#121b2b;--line:#26334a;--text:#eef3fb;--muted:#94a3b8;--brand:#7c6cf4;--cyan:#46d7ff;--green:#35d39a;--red:#ff6878}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 15% 0,#151c36 0,#070b14 40%,#050811 100%);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}
+.top{height:72px;position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:0 18px;border-bottom:1px solid var(--line);background:#070b14e8;backdrop-filter:blur(16px)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:850}.mark{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,var(--brand),var(--cyan));box-shadow:0 10px 30px #5c53e833}.brand small{display:block;color:var(--muted);font-size:11px;font-weight:600;margin-top:2px}
+.actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.chip{padding:7px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:#0b1220}.chip.ok{color:#b8f6df;border-color:#1e6653;background:#0a201b}.chip.bad{color:#ffb5be;border-color:#6c2a36;background:#241018}
+.btn{border:1px solid var(--line);background:#0d1626;color:var(--text);border-radius:10px;padding:9px 12px;font-weight:750}.btn:hover{background:#152237}.btn.primary{background:linear-gradient(135deg,#7667f0,#5b55df);border-color:#7c70fa}.btn.green{background:#0c2b22;border-color:#1c6d56;color:#b8f6df}.btn.red{background:#291118;border-color:#6c2a36;color:#ffb5be}.btn.small{padding:7px 9px;font-size:12px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 410px;height:calc(100vh - 72px)}.canvas{position:relative;overflow:hidden;border-right:1px solid var(--line);background:linear-gradient(180deg,#ffffff03,transparent 30%)}
+#tree{position:absolute;inset:0}.toolbar{position:absolute;top:16px;left:16px;right:16px;z-index:5;display:flex;justify-content:space-between;gap:10px;pointer-events:none}.toolbar>*{pointer-events:auto}
+.search{display:flex;align-items:center;gap:6px;padding:7px;background:#0b1220e8;border:1px solid var(--line);border-radius:12px}.search input{width:270px;background:transparent;border:0;outline:0;color:var(--text);padding:7px}
+.tip{position:absolute;left:16px;bottom:16px;z-index:5;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:#0b1220df;color:var(--muted);font-size:12px}
+.side{overflow:auto;background:linear-gradient(180deg,#0e1523,#0a0f18)}.side-inner{padding:16px}.tabs{display:flex;gap:6px;margin-bottom:14px}.tab{flex:1}.tab.active{background:#201b5e;border-color:#665df0}
+.card{background:#10192a;border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:12px}.hidden{display:none!important}
+.profile{display:flex;gap:11px;align-items:center}.avatar{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#263553,#18233a);border:1px solid #354561;font-weight:850}.profile h2{margin:0;font-size:18px}.profile p{margin:3px 0 0;color:var(--muted);font-size:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}label{display:grid;gap:5px;color:#cbd5e1;font-size:12px;font-weight:700}input,select,textarea{width:100%;background:#0a111e;border:1px solid #27354c;color:var(--text);border-radius:9px;padding:9px;outline:none}input:focus,select:focus,textarea:focus{border-color:#6a5df0;box-shadow:0 0 0 3px #665de022}
+.row{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.muted{color:var(--muted);line-height:1.5}.status{padding:9px 10px;background:#0a111e;border:1px solid var(--line);border-radius:9px;color:var(--muted);margin-top:9px}.danger{color:#ffb5be}.ok{color:#b8f6df}
+.rel{display:grid;gap:7px}.rel div{padding:8px 9px;background:#0a111e;border:1px solid #202c40;border-radius:9px}.rel span{display:block;color:var(--muted);font-size:11px}.rel b{font-size:12px}
+.issue{padding:11px;border:1px solid var(--line);background:#0a111e;border-radius:12px;margin-bottom:9px}.issue h4{margin:0 0 4px;font-size:13px}.issue p{margin:3px 0;color:var(--muted);font-size:12px}.issue pre{white-space:pre-wrap;max-height:150px;overflow:auto;background:#07101c;border:1px solid #1d2a3e;border-radius:8px;padding:8px;font-size:11px;color:#cbd5e1}
+.modal{position:fixed;inset:0;z-index:100;display:none;place-items:center;padding:18px;background:#03060ccc;backdrop-filter:blur(8px)}.modal.open{display:grid}.modal-box{width:min(700px,100%);max-height:92vh;overflow:auto;background:#0e1523;border:1px solid #2d3b55;border-radius:17px;box-shadow:0 35px 100px #0008}.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line)}.modal-head h2{margin:0;font-size:17px}.modal-body{padding:18px}.modal-foot{display:flex;justify-content:flex-end;gap:7px;padding:13px 18px;border-top:1px solid var(--line)}
+@media(max-width:1050px){.layout{grid-template-columns:1fr}.side{position:fixed;right:0;top:72px;bottom:0;width:min(430px,94vw);z-index:15;box-shadow:-25px 0 70px #0009}.search input{width:190px}.mobilePanel{display:block!important}}
+.mobilePanel{display:none}
 </style>
 </head>
 <body>
-<header><div class="brand">🔐 Family Graph — Admin</div><div class="toolbar"><a class="btn" href="./index.html">← Public tree</a><button id="logout" class="btn hidden">Lock</button></div></header>
-<main>
-
-<section id="loginCard" class="card">
-  <h2>Administrator login</h2>
-  <p class="muted">The password is a browser-side administrative lock. Because this project has no server, it cannot by itself become a central authentication service. GitHub remains the actual authorization layer for writes.</p>
-  <div id="firstSetup" class="notice hidden"><b>First-time setup:</b> Create the admin password for this browser. The password is stored only as a salted PBKDF2 hash in browser storage.</div>
-  <div class="grid" style="margin-top:15px">
-    <label>Password<input id="password" type="password" autocomplete="new-password"></label>
-    <label id="confirmWrap" class="hidden">Confirm password<input id="passwordConfirm" type="password" autocomplete="new-password"></label>
-  </div>
-  <div class="toolbar" style="margin-top:14px">
-    <button id="login" class="btn primary">Login</button>
-    <button id="changePassword" class="btn hidden">Change password</button>
-  </div>
-  <p id="loginStatus" class="status" style="margin-top:12px">Locked.</p>
-</section>
-
-<section id="tokenCard" class="card hidden">
-  <h2>GitHub authorization</h2>
-  <p class="muted">After the admin password, the editor needs a GitHub fine-grained token with access to <code>shubhamturai/family-tree-community</code> and <b>Contents: Read and write</b>. The token is held only in memory for this session and is never written into the repository.</p>
-  <label>GitHub token<input id="token" type="password" autocomplete="off" placeholder="github_pat_..."></label>
-  <div class="toolbar" style="margin-top:14px"><button id="connect" class="btn primary">Connect to repository</button></div>
-  <p id="tokenStatus" class="status" style="margin-top:12px">Not connected.</p>
-</section>
-
-<section id="editor" class="hidden">
-<div class="card" id="reviewCard">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-    <div>
-      <h2 style="margin-bottom:5px">Community edit requests</h2>
-      <p class="muted" style="margin-top:0">Review proposals submitted by contributors. You can edit the proposed change before approving it, request changes, or reject it.</p>
+<header class="top">
+  <div class="brand"><div class="mark">🌳</div><div>Family Graph<small>Admin Studio · interactive hierarchical family tree</small></div></div>
+  <div class="actions"><span id="connection" class="chip">Locked</span><button id="refresh" class="btn small">↻</button><button id="lock" class="btn small">Lock</button><a href="./index.html" class="btn small">Public tree</a></div>
+</header>
+<div class="layout">
+  <section class="canvas">
+    <div class="toolbar">
+      <div class="search">⌕<input id="search" placeholder="Search family members…"><button id="clearSearch" class="btn small">Clear</button></div>
+      <div class="actions"><button id="treeMode" class="btn small primary">🌳 Tree</button><button id="networkMode" class="btn small">◈ Network</button><button id="fit" class="btn small">Fit</button><button id="addPerson" class="btn small green">＋ Person</button><button id="panelBtn" class="btn small mobilePanel">Panel</button></div>
     </div>
-    <button id="refreshRequests" class="btn">↻ Refresh requests</button>
-  </div>
-  <div id="issuesStatus" class="status" style="margin:12px 0">Load requests after GitHub is connected.</div>
-  <div id="requestsList"></div>
+    <div id="tree"></div>
+    <div class="tip">Click a person to edit · Double-click to focus · Selected person actions are on the right</div>
+  </section>
+  <aside class="side">
+    <div class="side-inner">
+      <div class="tabs"><button id="editTab" class="btn tab active">Edit</button><button id="reviewTab" class="btn tab">Requests <span id="count"></span></button></div>
+      <div id="loginCard" class="card">
+        <b>Admin access</b><p class="muted">Password unlocks the console. GitHub token authorizes repository writes and stays in memory.</p>
+        <label>Password<input id="password" type="password" autocomplete="current-password"></label>
+        <div class="row"><button id="login" class="btn primary">Unlock</button></div>
+        <div id="tokenBox" class="hidden" style="margin-top:10px"><label>Repository GitHub token<input id="token" type="password" placeholder="github_pat_…"></label><div class="row"><button id="connect" class="btn primary">Connect</button></div><div id="tokenStatus" class="status">Waiting for token.</div></div>
+        <div id="loginStatus" class="status">Locked.</div>
+      </div>
+      <div id="editPane">
+        <div id="empty" class="card muted">Select a person in the tree to open the interactive editor.</div>
+        <div id="editor" class="hidden">
+          <div class="card"><div class="profile"><div id="avatar" class="avatar">?</div><div><h2 id="pname">Person</h2><p id="pid">P000000</p></div></div>
+            <div class="row"><button id="childBtn" class="btn primary small">＋ Child</button><button id="parentBtn" class="btn small">＋ Parent</button><button id="spouseBtn" class="btn small">＋ Spouse</button><button id="focusBtn" class="btn small">◎ Focus</button></div>
+          </div>
+          <div class="card"><b>Identity</b><div class="grid2" style="margin-top:10px">
+            <label>First name<input id="first"></label><label>Middle name<input id="middle"></label><label>Family name<input id="family"></label><label>Display name<input id="display"></label><label>Gender<select id="gender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option><option value="unknown">Unknown</option></select></label><label>Nickname<input id="nick"></label><label>Maiden/birth surname<input id="maiden"></label>
+          </div></div>
+          <div class="card"><b>Life</b><div class="grid2" style="margin-top:10px">
+            <label>DOB · DD/MM/YYYY<input id="dob" maxlength="10" placeholder="DD/MM/YYYY"></label><label>Death date · DD/MM/YYYY<input id="dod" maxlength="10" placeholder="DD/MM/YYYY"></label><label>Birth place<input id="birthPlace"></label><label>Birth region/state<input id="birthRegion"></label><label>Birth country<input id="birthCountry"></label><label>Death place<input id="deathPlace"></label><label>Current city/region<input id="location"></label><label>Occupation<input id="occupation"></label><label class="full">Notes<textarea id="notes" rows="4"></textarea></label>
+          </div><div class="row"><button id="save" class="btn primary">Save changes</button><button id="archive" class="btn red">Archive</button><button id="restore" class="btn green">Restore</button></div></div>
+          <div class="card"><b>Relationships</b><div id="rels" class="rel" style="margin-top:10px"></div></div>
+        </div>
+      </div>
+      <div id="reviewPane" class="hidden"><div class="card"><div class="actions" style="justify-content:space-between"><b>Community requests</b><button id="refreshRequests" class="btn small">↻</button></div><div id="reviewStatus" class="status">Connect GitHub to load requests.</div></div><div id="requests"></div></div>
+    </div>
+  </aside>
 </div>
-<div class="card">
-  <h2>Direct family editing</h2>
-  <p class="muted">These changes bypass the community proposal queue and commit directly to <code>main</code>. Use this during the initial family-tree bootstrap and for later trusted administration.</p>
-  <div id="status" class="status">Ready.</div>
-</div>
-
-<div class="card">
-<h2>Person</h2>
-<div class="grid">
-<label>Existing person<select id="personSelect"></select></label><label>Gender<select id="gender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option><option value="unknown">Unknown</option></select></label>
-<label>First name<input id="firstName"></label><label>Middle name<input id="middleName"></label>
-<label>Family name<input id="familyName"></label><label>Display name<input id="displayName"></label>
-<label>Date of birth (DD/MM/YYYY)<input id="dob" maxlength="10" placeholder="DD/MM/YYYY"></label><label>Date of death (DD/MM/YYYY)<input id="dod" maxlength="10" placeholder="DD/MM/YYYY"></label>
-<label>Birth place<input id="birthPlace"></label><label>Birth region/state<input id="birthRegion"></label>
-<label>Birth country<input id="birthCountry"></label><label>Death place<input id="deathPlace"></label>
-<label>Current city/region<input id="location"></label><label>Occupation<input id="occupation"></label>
-<label class="full">Notes<textarea id="notes" rows="4"></textarea></label>
-</div>
-<div class="toolbar" style="margin-top:15px"><button id="newPerson" class="btn">＋ New</button><button id="savePerson" class="btn primary">Save directly</button><button id="archivePerson" class="btn danger">Archive</button><button id="restorePerson" class="btn ok">Restore</button></div>
-</div>
-
-<div class="card">
-<h2>Parent / child</h2>
-<div class="grid">
-<label>Parent<select id="parentId"></select></label><label>Child<select id="childId"></select></label>
-<label>Role<select id="parentRole"><option value="father">Father</option><option value="mother">Mother</option><option value="parent">Parent</option><option value="adoptive_father">Adoptive father</option><option value="adoptive_mother">Adoptive mother</option><option value="step_father">Step-father</option><option value="step_mother">Step-mother</option></select></label>
-<label>Order among parent's children<input id="childOrder" type="number" min="1" value="1"></label>
-</div>
-<button id="saveParentChild" class="btn primary" style="margin-top:15px">Add directly</button>
-</div>
-
-<div class="card">
-<h2>Spouse</h2>
-<div class="grid">
-<label>Person A<select id="spouseA"></select></label><label>Person B<select id="spouseB"></select></label>
-<label>Marriage date (DD/MM/YYYY)<input id="marriageDate" maxlength="10" placeholder="DD/MM/YYYY"></label><label>Divorce date (DD/MM/YYYY)<input id="divorceDate" maxlength="10" placeholder="DD/MM/YYYY"></label>
-<label>Order<input id="spouseOrder" type="number" min="1" value="1"></label>
-</div>
-<button id="saveSpouse" class="btn primary" style="margin-top:15px">Add directly</button>
-</div>
-
-<div class="card">
-<h2>People</h2>
-<table><thead><tr><th>ID</th><th>Name</th><th>DOB</th><th>Status</th></tr></thead><tbody id="peopleTable"></tbody></table>
-</div>
-</section>
-</main>
-
+<div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle">Add person</h2><button id="modalClose" class="btn small">Close</button></div><div id="modalBody" class="modal-body"></div><div class="modal-foot"><button id="modalCancel" class="btn">Cancel</button><button id="modalSave" class="btn primary">Save</button></div></div></div>
 <script>
-const OWNER='shubhamturai',REPO='family-tree-community',PATH='data/family.json',BRANCH='main',AUTH_KEY='familyGraphAdminAuth';
-let token='',data=null,fileSha='',editingUnlocked=false;
-const $=id=>document.getElementById(id);
-function clean(v){return typeof v==='string'?v.trim():''}
-function display(p){return p?.displayName||[p?.firstName,p?.middleName,p?.familyName].filter(Boolean).join(' ')}
-function active(p){return p&&p.recordStatus!=='deleted'}
-function fmtDate(s){if(!s)return '';const p=String(s).split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:s}
-function parseDate(s){s=clean(s);if(!s)return '';const m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!m)return null;const d=+m[1],mo=+m[2],y=+m[3],dt=new Date(Date.UTC(y,mo-1,d));if(dt.getUTCFullYear()!=y||dt.getUTCMonth()!=mo-1||dt.getUTCDate()!=d)return null;return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
-async function derive(password,salt){const enc=new TextEncoder(),base=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},base,256);return btoa(String.fromCharCode(...new Uint8Array(bits)))}
-function b64bytes(bytes){return btoa(String.fromCharCode(...bytes))}
-function bytes(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}
-async function authCheck(password){const a=JSON.parse(localStorage.getItem(AUTH_KEY)||'null');if(!a)return false;return (await derive(password,bytes(a.salt)))===a.hash}
-async function setupPassword(password){const salt=new Uint8Array(16);crypto.getRandomValues(salt);const hash=await derive(password,salt);localStorage.setItem(AUTH_KEY,JSON.stringify({salt:b64bytes(salt),hash,version:1}))}
-function hasPassword(){return !!localStorage.getItem(AUTH_KEY)}
-function setLoginStatus(s,bad=false){$('loginStatus').textContent=s;$('loginStatus').className='status'+(bad?' dangerText':'')}
-function lockedUI(){ $('tokenCard').classList.add('hidden');$('editor').classList.add('hidden');$('logout').classList.add('hidden');$('changePassword').classList.add('hidden');editingUnlocked=false}
-function unlockUI(){ $('tokenCard').classList.remove('hidden');$('logout').classList.remove('hidden');$('changePassword').classList.remove('hidden');$('login').textContent='Unlocked';editingUnlocked=true;setLoginStatus('Admin password accepted. Now connect the repository.')}
-async function login(){
- const p=$('password').value;
- if(!p||p.length<10){setLoginStatus('Use an admin password of at least 10 characters.',true);return}
- try{
-  if(!hasPassword()){if($('passwordConfirm').value!==p){setLoginStatus('Passwords do not match.',true);return}await setupPassword(p);unlockUI();setLoginStatus('Admin password created and accepted.');}
-  else if(await authCheck(p)){unlockUI()}else setLoginStatus('Incorrect admin password.',true);
- }catch(e){setLoginStatus('Password setup/login failed.',true)}
-}
-async function changePassword(){
- if(!editingUnlocked)return;
- const old=$('password').value,newP=prompt('Enter a new admin password (10+ characters):');
- if(!newP||newP.length<10){setLoginStatus('Password change cancelled or too short.',true);return}
- const ok=await authCheck(old);if(!ok){setLoginStatus('Current password is incorrect.',true);return}
- await setupPassword(newP);setLoginStatus('Admin password changed.');$('password').value='';
-}
-function ghHeaders(){return {'Accept':'application/vnd.github+json','Authorization':'Bearer '+token,'X-GitHub-Api-Version':'2026-03-10','Content-Type':'application/json'}}
-async function gh(url,opts={}){const r=await fetch('https://api.github.com'+url,{...opts,headers:ghHeaders()});let j={};try{j=await r.json()}catch{}if(!r.ok)throw new Error(j.message||('GitHub API '+r.status));return j}
-function enc64(text){const b=new TextEncoder().encode(text);let out='';for(let i=0;i<b.length;i+=0x8000)out+=String.fromCharCode(...b.subarray(i,i+0x8000));return btoa(out)}
-function dec64(text){const b=Uint8Array.from(atob(text.replace(/\n/g,'')),c=>c.charCodeAt(0));return new TextDecoder().decode(b)}
-async function connectRepo(){
- token=$('token').value.trim();if(!token){$('tokenStatus').textContent='Enter the repository-scoped token.';return}
- try{await gh('/repos/'+OWNER+'/'+REPO);await loadData();await loadPendingRequests();$('tokenStatus').textContent='GitHub connected. Direct editing and request review enabled.';$('tokenStatus').className='status ok';$('editor').classList.remove('hidden');}
- catch(e){token='';$('tokenStatus').textContent='GitHub connection failed: '+e.message;$('tokenStatus').className='status dangerText'}
-}
-async function loadData(){const f=await gh('/repos/'+OWNER+'/'+REPO+'/contents/'+PATH+'?ref='+BRANCH);fileSha=f.sha;data=JSON.parse(dec64(f.content));data.persons ||= [];data.relationships ||= {parentChild:[],spouses:[]};data.relationships.parentChild ||= [];data.relationships.spouses ||= [];populate();renderTable();setStatus('Loaded '+data.persons.filter(active).length+' active people.')}
-
-let pendingRequests=[];
-function renderRequests(){
-  const box=$('requestsList');
-  if(!pendingRequests.length){box.innerHTML='<div class="notice">No pending community requests.</div>';return}
-  box.innerHTML=pendingRequests.map(issue=>{
-    const m=(issue.body||'').match(/FG_PROPOSAL\\s*\\n([\\s\\S]*?)\\nFG_PROPOSAL/);
-    let proposal={operation:'UNKNOWN',payload:{}},valid=true;
-    try{if(!m)throw new Error('Missing FG_PROPOSAL');proposal=JSON.parse(m[1])}catch(e){valid=false}
-    const p=proposal.payload||{};
-    const summary=proposal.operation==='ADD_PERSON' ? (p.displayName||[p.firstName,p.middleName,p.familyName].filter(Boolean).join(' ')) : proposal.operation==='UPDATE_PERSON' ? (p.personId||'Unknown person') : proposal.operation==='DELETE_PERSON' ? (p.personId||'Unknown person') : proposal.operation;
-    return '<div class="card" style="background:#fafbff">'+
-      '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>#'+issue.number+' · '+escapeHtml(issue.title||'')+'</b><div class="small muted">Submitted '+escapeHtml(new Date(issue.created_at).toLocaleString())+' · @'+escapeHtml(issue.user?.login||'unknown')+'</div></div><span class="status">'+escapeHtml(proposal.operation||'UNKNOWN')+'</span></div>'+
-      '<p><b>Summary:</b> '+escapeHtml(summary||'—')+'</p>'+
-      (!valid?'<div class="notice dangerText">This request is malformed and cannot be approved until corrected.</div>':'')+
-      '<label>Edit proposal JSON<div class="hint">Edit only the proposal object. Dates must remain ISO <code>YYYY-MM-DD</code> in the proposal JSON.</div><textarea id="issue-json-'+issue.number+'" rows="14" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">'+escapeHtml(JSON.stringify(proposal,null,2))+'</textarea></label>'+
-      '<div class="toolbar" style="margin-top:10px">'+
-      '<button class="btn" onclick="saveRequestEdit('+issue.number+')">Save edit</button>'+
-      '<button class="btn primary" onclick="approveRequest('+issue.number+')">Approve</button>'+
-      '<button class="btn" onclick="requestChanges('+issue.number+')">Request changes</button>'+
-      '<button class="btn danger" onclick="rejectRequest('+issue.number+')">Reject</button>'+
-      '<a class="btn" target="_blank" href="'+escapeAttr(issue.html_url||'#')+'">Open GitHub issue</a>'+
-      '</div>'+
-      '<div id="issue-msg-'+issue.number+'" class="status" style="margin-top:10px">No action taken.</div>'+
-    '</div>';
-  }).join('');
-}
-function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function escapeAttr(s){return escapeHtml(s).replace(/'/g,'&#39;')}
-async function loadPendingRequests(){
-  if(!token){return}
-  $('issuesStatus').textContent='Loading pending requests…';
-  try{
-    const items=await gh('/repos/'+OWNER+'/'+REPO+'/issues?state=open&labels=family%3Apending&per_page=100&sort=created&direction=asc');
-    pendingRequests=items.filter(x=>!x.pull_request);
-    renderRequests();
-    $('issuesStatus').textContent=pendingRequests.length+' pending request(s).';
-  }catch(e){$('issuesStatus').textContent='Could not load requests: '+e.message;$('issuesStatus').className='status dangerText'}
-}
-function proposalFromEditor(issueNumber){
-  const raw=$('issue-json-'+issueNumber)?.value||'';
-  let proposal;
-  try{proposal=JSON.parse(raw)}catch(e){throw new Error('Proposal JSON is invalid: '+e.message)}
-  if(!proposal||typeof proposal!=='object'||typeof proposal.operation!=='string'||typeof proposal.payload!=='object')throw new Error('Proposal must contain operation and payload.');
-  return proposal;
-}
-function replaceProposalBody(body,proposal,adminNote){
-  const marker=/FG_PROPOSAL\\s*\\n([\\s\\S]*?)\\nFG_PROPOSAL/;
-  const block='FG_PROPOSAL\\n'+JSON.stringify(proposal,null,2)+'\\nFG_PROPOSAL';
-  if(marker.test(body)) return body.replace(marker,block)+(adminNote?'\\n\\n---\\nAdmin review note:\\n'+adminNote:'');
-  return block+'\\n\\n'+(body||'')+(adminNote?'\\n\\n---\\nAdmin review note:\\n'+adminNote:'');
-}
-function issueLabels(issue,primary){return Array.from(new Set(['family:'+primary]))}
-async function updateRequestIssue(issueNumber,proposal,primary,note,state=null){
-  const issue=pendingRequests.find(x=>x.number===issueNumber);
-  if(!issue)throw new Error('Request no longer appears in the pending list.');
-  const body=replaceProposalBody(issue.body||'',proposal,note);
-  const payload={body,labels:issueLabels(issue,primary)};
-  if(state)payload.state=state;
-  const updated=await gh('/repos/'+OWNER+'/'+REPO+'/issues/'+issueNumber,{method:'PATCH',body:JSON.stringify(payload)});
-  const idx=pendingRequests.findIndex(x=>x.number===issueNumber);
-  if(primary!=='pending')pendingRequests.splice(idx,1); else pendingRequests[idx]=updated;
-  renderRequests();
-  return updated;
-}
-async function saveRequestEdit(issueNumber){
-  try{
-    const proposal=proposalFromEditor(issueNumber);
-    const issue=pendingRequests.find(x=>x.number===issueNumber);
-    await updateRequestIssue(issueNumber,proposal,'pending','Admin edited the proposal and returned it to the pending queue.');
-    setStatus('Request #'+issueNumber+' updated. It remains pending approval.');
-  }catch(e){const el=$('issue-msg-'+issueNumber);if(el){el.textContent=e.message;el.className='status dangerText'}}
-}
-async function approveRequest(issueNumber){
-  try{
-    const proposal=proposalFromEditor(issueNumber);
-    const issue=pendingRequests.find(x=>x.number===issueNumber);
-    const msg='Approved by admin. The approved proposal will now be validated and applied automatically.';
-    const updated=await updateRequestIssue(issueNumber,proposal,'approved',msg);
-    await gh('/repos/'+OWNER+'/'+REPO+'/issues/'+issueNumber+'/comments',{method:'POST',body:JSON.stringify({body:'✅ Approved from the Admin Portal. The proposal was reviewed and will be applied by the family-graph workflow.'})});
-    setStatus('Request #'+issueNumber+' approved. GitHub Actions will apply it.');
-  }catch(e){const el=$('issue-msg-'+issueNumber);if(el){el.textContent='Approval failed: '+e.message;el.className='status dangerText'}}
-}
-async function requestChanges(issueNumber){
-  const note=prompt('What changes should the contributor make?');
-  if(!note?.trim())return;
-  try{
-    const proposal=proposalFromEditor(issueNumber);
-    await gh('/repos/'+OWNER+'/'+REPO+'/issues/'+issueNumber+'/comments',{method:'POST',body:JSON.stringify({body:'📝 Changes requested by admin from the Admin Portal:\\n\\n'+note.trim()})});
-    await updateRequestIssue(issueNumber,proposal,'needs-changes','Admin requested changes: '+note.trim());
-    setStatus('Request #'+issueNumber+' returned for changes.');
-  }catch(e){const el=$('issue-msg-'+issueNumber);if(el){el.textContent='Request-changes failed: '+e.message;el.className='status dangerText'}}
-}
-async function rejectRequest(issueNumber){
-  const note=prompt('Reason for rejection (optional):')||'Rejected by admin.';
-  try{
-    const proposal=proposalFromEditor(issueNumber);
-    await gh('/repos/'+OWNER+'/'+REPO+'/issues/'+issueNumber+'/comments',{method:'POST',body:JSON.stringify({body:'❌ Rejected by admin from the Admin Portal.\\n\\n'+note.trim()})});
-    await updateRequestIssue(issueNumber,proposal,'rejected',note.trim(), 'closed');
-    setStatus('Request #'+issueNumber+' rejected and closed.');
-  }catch(e){const el=$('issue-msg-'+issueNumber);if(el){el.textContent='Rejection failed: '+e.message;el.className='status dangerText'}}
-}
-function setStatus(s,bad=false){$('status').textContent=s;$('status').className='status'+(bad?' dangerText':'')}
-function nextId(){return 'P'+String(Math.max(0,...data.persons.map(p=>Number(String(p.id).slice(1))||0))+1).padStart(6,'0')}
-async function commitData(message){data.lastUpdated=new Date().toISOString();const r=await gh('/repos/'+OWNER+'/'+REPO+'/contents/'+PATH,{method:'PUT',body:JSON.stringify({message,content:enc64(JSON.stringify(data,null,2)+'\n'),sha:fileSha,branch:BRANCH})});fileSha=r.content.sha;populate();renderTable();setStatus('Saved directly: '+message)}
-function populate(){
- const people=data.persons.slice().sort((a,b)=>display(a).localeCompare(display(b)));
- $('personSelect').innerHTML='<option value="">＋ New person</option>'+people.map(p=>'<option value="'+p.id+'">'+display(p)+' · '+p.id+(p.recordStatus==='deleted'?' · archived':'')+'</option>').join('');
- const activeOpts=people.filter(active).map(p=>'<option value="'+p.id+'">'+display(p)+' · '+p.id+'</option>').join('');
- $('parentId').innerHTML=activeOpts;$('childId').innerHTML=activeOpts;$('spouseA').innerHTML=activeOpts;$('spouseB').innerHTML=activeOpts;
-}
-function renderTable(){$('peopleTable').innerHTML=data.persons.map(p=>'<tr><td>'+p.id+'</td><td>'+display(p)+'</td><td>'+fmtDate(p.dateOfBirth)+'</td><td>'+(p.recordStatus==='deleted'?'Archived':(p.dateOfDeath?'Deceased':(p.lifeStatus||'Unknown')))+'</td></tr>').join('')}
-function clearPerson(){$('personSelect').value='';['firstName','middleName','familyName','displayName','dob','dod','birthPlace','birthRegion','birthCountry','deathPlace','location','occupation','notes'].forEach(k=>$(k).value='');$('gender').value=''}
-function fillPerson(id){
- const p=data.persons.find(x=>x.id===id);if(!p){clearPerson();return}
- $('personSelect').value=id;$('firstName').value=p.firstName||'';$('middleName').value=p.middleName||'';$('familyName').value=p.familyName||'';$('displayName').value=p.displayName||'';$('gender').value=p.gender||'';$('dob').value=fmtDate(p.dateOfBirth);$('dod').value=fmtDate(p.dateOfDeath);$('birthPlace').value=p.birthPlace||'';$('birthRegion').value=p.birthRegion||'';$('birthCountry').value=p.birthCountry||'';$('deathPlace').value=p.deathPlace||'';$('location').value=p.currentLocation||'';$('occupation').value=p.occupation||'';$('notes').value=p.notes||'';
-}
-$('login').onclick=login;$('changePassword').onclick=changePassword;
-$('password').onkeydown=e=>{if(e.key==='Enter')login()};
-$('logout').onclick=()=>{token='';data=null;fileSha='';$('password').value='';$('token').value='';$('editor').classList.add('hidden');$('tokenCard').classList.add('hidden');$('logout').classList.add('hidden');$('changePassword').classList.add('hidden');setLoginStatus('Locked.');};
-$('connect').onclick=connectRepo;$('personSelect').onchange=e=>fillPerson(e.target.value);$('newPerson').onclick=clearPerson;
-$('refreshRequests').onclick=loadPendingRequests;
-$('savePerson').onclick=async()=>{
- try{
-  const id=$('personSelect').value,dob=parseDate($('dob').value),dod=parseDate($('dod').value);
-  if(($('dob').value&&!dob)||($('dod').value&&!dod)){setStatus('Dates must be DD/MM/YYYY.',true);return}
-  if(dob&&dod&&dod<dob){setStatus('Death date cannot be before DOB.',true);return}
-  const first=clean($('firstName').value),displayName=clean($('displayName').value)||[first,clean($('middleName').value),clean($('familyName').value)].filter(Boolean).join(' ');
-  if(!displayName){setStatus('Name is required.',true);return}
-  if(id){const p=data.persons.find(x=>x.id===id);if(!p||p.recordStatus==='deleted')throw new Error('Select an active person.');Object.assign(p,{firstName:first,middleName:clean($('middleName').value),familyName:clean($('familyName').value),displayName,gender:$('gender').value,dateOfBirth:dob,dateOfDeath:dod,lifeStatus:dod?'deceased':(p.lifeStatus||'unknown'),birthPlace:clean($('birthPlace').value),birthRegion:clean($('birthRegion').value),birthCountry:clean($('birthCountry').value),deathPlace:clean($('deathPlace').value),currentLocation:clean($('location').value),occupation:clean($('occupation').value),notes:clean($('notes').value)});await commitData('Admin edit person '+id)}
-  else{const id2=nextId();data.persons.push({id:id2,firstName:first,middleName:clean($('middleName').value),familyName:clean($('familyName').value),displayName,gender:$('gender').value,dateOfBirth:dob,dateOfDeath:dod,lifeStatus:dod?'deceased':'unknown',birthPlace:clean($('birthPlace').value),birthRegion:clean($('birthRegion').value),birthCountry:clean($('birthCountry').value),deathPlace:clean($('deathPlace').value),currentLocation:clean($('location').value),occupation:clean($('occupation').value),notes:clean($('notes').value),recordStatus:'active'});await commitData('Admin add person '+id2);fillPerson(id2)}
- }catch(e){setStatus('Save failed: '+e.message,true)}
-};
-$('archivePerson').onclick=async()=>{try{const id=$('personSelect').value,p=data.persons.find(x=>x.id===id);if(!p)throw new Error('Select a person');if(!confirm('Archive '+display(p)+'?'))return;p.recordStatus='deleted';p.archivedAt=new Date().toISOString();p.archiveReason='Direct administrator archive';await commitData('Admin archive person '+id)}catch(e){setStatus('Archive failed: '+e.message,true)}};
-$('restorePerson').onclick=async()=>{try{const id=$('personSelect').value,p=data.persons.find(x=>x.id===id);if(!p)throw new Error('Select an archived person');p.recordStatus='active';delete p.archivedAt;delete p.archiveReason;await commitData('Admin restore person '+id)}catch(e){setStatus('Restore failed: '+e.message,true)}};
-$('saveParentChild').onclick=async()=>{try{const parentId=$('parentId').value,childId=$('childId').value;if(!parentId||!childId||parentId===childId)throw new Error('Choose two different people');if(data.relationships.parentChild.some(r=>r.parentId===parentId&&r.childId===childId))throw new Error('Relationship already exists');data.relationships.parentChild.push({parentId,childId,role:$('parentRole').value,order:Number($('childOrder').value)||1});await commitData('Admin add parent-child relationship')}catch(e){setStatus('Relationship failed: '+e.message,true)}};
-$('saveSpouse').onclick=async()=>{try{const personAId=$('spouseA').value,personBId=$('spouseB').value,marriageDate=parseDate($('marriageDate').value),divorceDate=parseDate($('divorceDate').value);if(!personAId||!personBId||personAId===personBId)throw new Error('Choose two different people');if(($('marriageDate').value&&!marriageDate)||($('divorceDate').value&&!divorceDate))throw new Error('Dates must be DD/MM/YYYY');if(data.relationships.spouses.some(r=>new Set([r.personAId,r.personBId]).size===2&&[r.personAId,r.personBId].includes(personAId)&&[r.personAId,r.personBId].includes(personBId)))throw new Error('Spouse relationship already exists');data.relationships.spouses.push({personAId,personBId,order:Number($('spouseOrder').value)||1,marriageDate,divorceDate});await commitData('Admin add spouse relationship')}catch(e){setStatus('Spouse update failed: '+e.message,true)}};
-
-if(!hasPassword()){$('firstSetup').classList.remove('hidden');$('confirmWrap').classList.remove('hidden');$('login').textContent='Create admin password';}
-else setLoginStatus('Admin password required.');
+const OWNER="shubhamturai",REPO="family-tree-community",PATH="data/family.json",BRANCH="main",AUTH_KEY="familyGraphAdminAuth";
+let token="",data=null,fileSha="",cy=null,selected=null,layout="tree",pending=[],reviewIssue=null;
+const $=id=>document.getElementById(id),person=id=>data&&data.persons.find(p=>p.id===id),name=p=>p&&((p.displayName)||[p.firstName,p.middleName,p.familyName].filter(Boolean).join(" ")),alive=p=>p&&p.recordStatus!=="deleted";
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+function fmt(s){if(!s)return "";let p=String(s).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:s}
+function parse(s){s=(s||"").trim();if(!s)return "";let m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!m)return null;let d=+m[1],mo=+m[2],y=+m[3],dt=new Date(Date.UTC(y,mo-1,d));return dt.getUTCFullYear()===y&&dt.getUTCMonth()===mo-1&&dt.getUTCDate()===d?y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0"):null}
+function nextId(){return "P"+String(Math.max(0,...data.persons.map(p=>Number(String(p.id).slice(1))||0))+1).padStart(6,"0")}
+function status(t,bad){$("loginStatus").textContent=t;$("loginStatus").className="status"+(bad?" danger":"")}
+function chip(t,ok){$("connection").textContent=t;$("connection").className="chip "+(ok?"ok":"bad")}
+function headers(){return {"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2026-03-10","Content-Type":"application/json"}}
+async function api(path,opt){let r=await fetch("https://api.github.com"+path,Object.assign({},opt||{}, {headers:headers()}));let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.message||("GitHub "+r.status));return j}
+function b64(s){let b=new TextEncoder().encode(s),o="";for(let i=0;i<b.length;i+=0x8000)o+=String.fromCharCode(...b.subarray(i,i+0x8000));return btoa(o)}
+function un64(s){let b=Uint8Array.from(atob(s.replace(/\n/g,"")),c=>c.charCodeAt(0));return new TextDecoder().decode(b)}
+async function hash(p,s){let k=await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveBits"]),x=await crypto.subtle.deriveBits({name:"PBKDF2",salt:s,iterations:150000,hash:"SHA-256"},k,256);return btoa(String.fromCharCode(...new Uint8Array(x)))}
+async function unlock(){let p=$("password").value;if(p.length<10){status("Use at least 10 characters.",true);return}let a=JSON.parse(localStorage.getItem(AUTH_KEY)||"null");if(!a){let s=new Uint8Array(16);crypto.getRandomValues(s);localStorage.setItem(AUTH_KEY,JSON.stringify({salt:btoa(String.fromCharCode(...s)),hash:await hash(p,s)}));status("Password created. Now connect GitHub.")}else if(await hash(p,Uint8Array.from(atob(a.salt),c=>c.charCodeAt(0)))===a.hash){status("Unlocked. Now connect GitHub.")}else{status("Incorrect password.",true);return}$("tokenBox").classList.remove("hidden")}
+async function connect(){token=$("token").value.trim();if(!token)return;$("tokenStatus").textContent="Connecting…";try{await api("/repos/"+OWNER+"/"+REPO);await loadData();await loadRequests();chip("Connected",true);$("tokenStatus").textContent="Connected. Direct editing is enabled.";$("tokenStatus").className="status ok"}catch(e){token="";$("tokenStatus").textContent="Failed: "+e.message;$("tokenStatus").className="status danger";chip("Locked",false)}}
+async function loadData(){let f=await api("/repos/"+OWNER+"/"+REPO+"/contents/"+PATH+"?ref="+BRANCH);fileSha=f.sha;data=JSON.parse(un64(f.content));data.persons=data.persons||[];data.relationships=data.relationships||{};data.relationships.parentChild=data.relationships.parentChild||[];data.relationships.spouses=data.relationships.spouses||[];draw();if(selected)select(selected.id)}
+async function save(message){data.lastUpdated=new Date().toISOString();let r=await api("/repos/"+OWNER+"/"+REPO+"/contents/"+PATH,{method:"PUT",body:JSON.stringify({message:message,content:b64(JSON.stringify(data,null,2)+"\n"),sha:fileSha,branch:BRANCH})});fileSha=r.content.sha;draw();if(selected)select(selected.id);chip("Saved",true);setTimeout(()=>chip("Connected",true),1200)}
+function parents(){return data.relationships.parentChild.filter(r=>alive(person(r.parentId))&&alive(person(r.childId)))}
+function spouses(){return data.relationships.spouses.filter(r=>alive(person(r.personAId))&&alive(person(r.personBId)))}
+function treeNodes(q){return data.persons.filter(alive).filter(p=>!q||name(p).toLowerCase().includes(q.toLowerCase()))}
+function draw(q){let people=treeNodes(q||""),ids=new Set(people.map(p=>p.id)),nodes=people.map(p=>({data:{id:p.id,label:name(p)}})),edges=[];parents().forEach(r=>{if(ids.has(r.parentId)&&ids.has(r.childId))edges.push({data:{id:"pc"+r.parentId+r.childId,source:r.parentId,target:r.childId}})});spouses().forEach(r=>{if(ids.has(r.personAId)&&ids.has(r.personBId))edges.push({data:{id:"sp"+r.personAId+r.personBId,source:r.personAId,target:r.personBId},classes:"spouse"})});if(cy)cy.destroy();cy=cytoscape({container:$("tree"),elements:{nodes:nodes,edges:edges},style:[{selector:"node",style:{"background-color":"#15223a","border-color":"#415270","border-width":1,"label":"data(label)","color":"#eff4fc","font-size":12,"font-weight":800,"text-wrap":"wrap","text-max-width":"120px","text-valign":"center","text-halign":"center","width":120,"height":68,"shape":"round-rectangle"}},{selector:"node:selected",style:{"border-width":3,"border-color":"#8d7dff","shadow-blur":20,"shadow-color":"#6f63ef","shadow-opacity":.7}},{selector:"edge",style:{"curve-style":"bezier","line-color":"#52647f","width":2,"target-arrow-shape":"triangle","target-arrow-color":"#52647f"}},{selector:"edge.spouse",style:{"line-style":"dashed","line-color":"#b388ff","target-arrow-shape":"none"}}],layout:layout==="tree"?{name:"dagre",rankDir:"TB",rankSep:100,nodeSep:35,padding:80}:{name:"cose",nodeRepulsion:6500,idealEdgeLength:190,padding:80}});cy.on("tap","node",e=>select(e.target.id()));cy.on("dblclick","node",e=>focus(e.target.id()));}
+function select(id){let p=person(id);if(!p)return;selected=p;cy.nodes().unselect();cy.getElementById(id).select();$("empty").classList.add("hidden");$("editor").classList.remove("hidden");$("pname").textContent=name(p);$("pid").textContent=p.id+" · "+(p.dateOfDeath?"Deceased":(p.lifeStatus||"Unknown"));$("avatar").textContent=(name(p)||"?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();$("first").value=p.firstName||"";$("middle").value=p.middleName||"";$("family").value=p.familyName||"";$("display").value=p.displayName||"";$("gender").value=p.gender||"";$("nick").value=p.nickname||"";$("maiden").value=p.maidenName||"";$("dob").value=fmt(p.dateOfBirth);$("dod").value=fmt(p.dateOfDeath);$("birthPlace").value=p.birthPlace||"";$("birthRegion").value=p.birthRegion||"";$("birthCountry").value=p.birthCountry||"";$("deathPlace").value=p.deathPlace||"";$("location").value=p.currentLocation||"";$("occupation").value=p.occupation||"";$("notes").value=p.notes||"";relationView(p)}
+function relationView(p){let ps=parents().filter(r=>r.childId===p.id).map(r=>(r.role||"parent")+": "+name(person(r.parentId))),cs=parents().filter(r=>r.parentId===p.id).sort((a,b)=>(a.order||99)-(b.order||99)).map(r=>(r.order||"")+" · "+name(person(r.childId))),ss=spouses().filter(r=>r.personAId===p.id||r.personBId===p.id).map(r=>name(person(r.personAId===p.id?r.personBId:r.personAId)));$("rels").innerHTML='<div><span>Parents</span><b>'+esc(ps.join(" · ")||"None")+'</b></div><div><span>Spouses</span><b>'+esc(ss.join(" · ")||"None")+'</b></div><div><span>Children · ordered</span><b>'+esc(cs.join(" · ")||"None")+'</b></div>'}
+function focus(id){let n=cy.getElementById(id);if(n.length){cy.fit(n.closedNeighborhood(),90);n.select()}}
+async function saveSelected(){if(!selected)return;let dob=parse($("dob").value),dod=parse($("dod").value);if(($("dob").value&&!dob)||($("dod").value&&!dod)){alert("Dates must be DD/MM/YYYY");return}if(dob&&dod&&dod<dob){alert("Death date cannot be before DOB");return}let nm=($("display").value||[$("first").value,$("middle").value,$("family").value].filter(Boolean).join(" ")).trim();if(!nm){alert("Name is required");return}Object.assign(selected,{firstName:$("first").value.trim(),middleName:$("middle").value.trim(),familyName:$("family").value.trim(),displayName:nm,gender:$("gender").value,nickname:$("nick").value.trim(),maidenName:$("maiden").value.trim(),dateOfBirth:dob,dateOfDeath:dod,lifeStatus:dod?"deceased":(selected.lifeStatus||"unknown"),birthPlace:$("birthPlace").value.trim(),birthRegion:$("birthRegion").value.trim(),birthCountry:$("birthCountry").value.trim(),deathPlace:$("deathPlace").value.trim(),currentLocation:$("location").value.trim(),occupation:$("occupation").value.trim(),notes:$("notes").value.trim(),recordStatus:"active"});await save("Admin edit "+selected.id)}
+async function archive(){if(!selected)return;if(!confirm("Archive "+name(selected)+"? The record stays recoverable."))return;selected.recordStatus="deleted";selected.archivedAt=new Date().toISOString();selected.archiveReason="Direct administrator archive";await save("Admin archive "+selected.id)}
+async function restore(){if(!selected)return;selected.recordStatus="active";delete selected.archivedAt;delete selected.archiveReason;await save("Admin restore "+selected.id)}
+function modal(title,body,saveFn,cancelFn){$("modalTitle").textContent=title;$("modalBody").innerHTML=body;$("modal").classList.add("open");$("modalSave").onclick=saveFn;$("modalCancel").onclick=cancelFn||closeModal;$("modalClose").onclick=closeModal}
+function closeModal(){$("modal").classList.remove("open")}
+function newPersonFields(extra){return '<div class="grid2"><label>First name<input id="mFirst"></label><label>Family name<input id="mFamily"></label><label>Display name<input id="mDisplay"></label><label>Gender<select id="mGender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label><label>DOB · DD/MM/YYYY<input id="mDob" maxlength="10" placeholder="DD/MM/YYYY"></label>'+extra+'</div>'}
+function addPersonModal(){modal("Add person",newPersonFields('<label>Birth place<input id="mBirthPlace"></label>'),async()=>{try{let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim(),dob=parse($("mDob").value);if(!nm)throw Error("Name required");if($("mDob").value&&!dob)throw Error("DOB must be DD/MM/YYYY");let id=nextId();data.persons.push({id:id,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:dob,dateOfDeath:"",lifeStatus:"unknown",birthPlace:$("mBirthPlace").value.trim(),birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"});await save("Admin add "+id);closeModal();select(id)}catch(e){alert(e.message)}})}
+function relationshipModal(kind){let opts=data.persons.filter(alive).map(p=>'<option value="'+p.id+'">'+esc(name(p))+' · '+p.id+'</option>').join(""), title=kind==="child"?"Add child":"Add parent";let body='<p class="muted">'+title+' for <b>'+esc(name(selected))+'</b>.</p><label>Use existing person<select id="mExisting"><option value="__new">＋ Create new person</option>'+opts+'</select></label><div id="mNew" style="margin-top:10px">'+newPersonFields("")+'</div><div class="grid2" style="margin-top:10px"><label>Role<select id="mRole"><option value="parent">Parent</option><option value="father">Father</option><option value="mother">Mother</option><option value="adoptive_father">Adoptive father</option><option value="adoptive_mother">Adoptive mother</option><option value="step_father">Step-father</option><option value="step_mother">Step-mother</option></select></label><label>Order<input id="mOrder" type="number" min="1" value="1"></label></div>';modal(title,body,async()=>{try{let target=$("mExisting").value;if(target==="__new"){let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim(),dob=parse($("mDob").value);if(!nm)throw Error("Name required");if($("mDob").value&&!dob)throw Error("DOB must be DD/MM/YYYY");target=nextId();data.persons.push({id:target,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:dob,dateOfDeath:"",lifeStatus:"unknown",birthPlace:"",birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"})}if(target===selected.id)throw Error("Cannot relate a person to themselves");let parentId=kind==="child"?selected.id:target,childId=kind==="child"?target:selected.id;if(data.relationships.parentChild.some(r=>r.parentId===parentId&&r.childId===childId))throw Error("Relationship already exists");data.relationships.parentChild.push({parentId:parentId,childId:childId,role:$("mRole").value,order:Number($("mOrder").value)||1});await save("Admin add parent-child "+parentId+" → "+childId);closeModal();select(selected.id)}catch(e){alert(e.message)}});$("mExisting").onchange=function(){$("mNew").style.display=this.value==="__new"?"block":"none"}}
+function spouseModal(){let opts=data.persons.filter(alive).map(p=>'<option value="'+p.id+'">'+esc(name(p))+' · '+p.id+'</option>').join(""),body='<p class="muted">Add spouse for <b>'+esc(name(selected))+'</b>.</p><label>Use existing person<select id="mExisting"><option value="__new">＋ Create new person</option>'+opts+'</select></label><div id="mNew" style="margin-top:10px">'+newPersonFields("")+'</div><div class="grid2" style="margin-top:10px"><label>Marriage date · DD/MM/YYYY<input id="mMarriage" maxlength="10" placeholder="DD/MM/YYYY"></label><label>Order<input id="mOrder" type="number" min="1" value="1"></label></div>';modal("Add spouse",body,async()=>{try{let target=$("mExisting").value;if(target==="__new"){let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim();if(!nm)throw Error("Name required");target=nextId();data.persons.push({id:target,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:"",dateOfDeath:"",lifeStatus:"unknown",birthPlace:"",birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"})}if(target===selected.id)throw Error("Cannot spouse a person with themselves");if(data.relationships.spouses.some(r=>new Set([r.personAId,r.personBId]).size===2&&[r.personAId,r.personBId].includes(selected.id)&&[r.personAId,r.personBId].includes(target)))throw Error("Spouse relationship already exists");let md=parse($("mMarriage").value);if($("mMarriage").value&&!md)throw Error("Marriage date must be DD/MM/YYYY");data.relationships.spouses.push({personAId:selected.id,personBId:target,order:Number($("mOrder").value)||1,marriageDate:md,divorceDate:""});await save("Admin add spouse "+selected.id+" ↔ "+target);closeModal();select(target)}catch(e){alert(e.message)}});$("mExisting").onchange=function(){$("mNew").style.display=this.value==="__new"?"block":"none"}}
+async function loadRequests(){if(!token)return;try{$("reviewStatus").textContent="Loading requests…";let xs=await api("/repos/"+OWNER+"/"+REPO+"/issues?state=open&labels=family%3Apending&per_page=100&sort=created&direction=asc");pending=xs.filter(x=>!x.pull_request);$("count").textContent=pending.length?"("+pending.length+")":"";$("reviewStatus").textContent=pending.length+" pending request(s).";$("requests").innerHTML=pending.length?pending.map(issue=>{let m=(issue.body||"").match(/FG_PROPOSAL\s*\n([\s\S]*?)\nFG_PROPOSAL/),p=null;try{p=m?JSON.parse(m[1]):null}catch(e){}return '<div class="issue"><h4>#'+issue.number+" · "+esc(issue.title||"")+'</h4><p>@'+esc(issue.user?.login||"unknown")+'</p><p>Operation: <b>'+esc(p?.operation||"Malformed")+'</b></p><pre>'+esc(JSON.stringify(p?.payload||{},null,2))+'</pre><div class="row"><button class="btn small" onclick="review('+issue.number+')">Review</button></div></div>'}).join(""):'<div class="card muted">No pending requests.</div>'}catch(e){$("reviewStatus").textContent=e.message}}
+function review(n){let issue=pending.find(x=>x.number===n);if(!issue)return;reviewIssue=issue;let m=(issue.body||"").match(/FG_PROPOSAL\s*\n([\s\S]*?)\nFG_PROPOSAL/),p={operation:"UNKNOWN",payload:{}};try{if(m)p=JSON.parse(m[1])}catch(e){}modal("Review request #"+n,'<p class="muted">Contributor: <b>@'+esc(issue.user?.login||"unknown")+'</b></p><label>Proposal JSON<textarea id="rjson" rows="15" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">'+esc(JSON.stringify(p,null,2))+'</textarea></label><label style="margin-top:10px">Admin note<textarea id="rnote" rows="3"></textarea></label>',async()=>{try{let np=JSON.parse($("rjson").value),body=issue.body.replace(/FG_PROPOSAL\s*\n([\s\S]*?)\nFG_PROPOSAL/,"FG_PROPOSAL\n"+JSON.stringify(np,null,2)+"\nFG_PROPOSAL");if($("rnote").value)body+="\n\nAdmin review note:\n"+$("rnote").value;await api("/repos/"+OWNER+"/"+REPO+"/issues/"+n,{method:"PATCH",body:JSON.stringify({body:body,labels:["family:approved"]})});await api("/repos/"+OWNER+"/"+REPO+"/issues/"+n+"/comments",{method:"POST",body:JSON.stringify({body:"✅ Approved from the Admin Studio."})});closeModal();reviewIssue=null;loadRequests()}catch(e){alert(e.message)}},async()=>{let note=$("rnote")?.value?.trim();if(!note){alert("Enter what needs to change.");return}try{await api("/repos/"+OWNER+"/"+REPO+"/issues/"+n+"/comments",{method:"POST",body:JSON.stringify({body:"📝 Changes requested by admin:\n\n"+note})});await api("/repos/"+OWNER+"/"+REPO+"/issues/"+n,{method:"PATCH",body:JSON.stringify({labels:["family:needs-changes"]})});closeModal();reviewIssue=null;loadRequests()}catch(e){alert(e.message)}})}
+$("login").onclick=unlock;$("connect").onclick=connect;$("refresh").onclick=()=>token&&loadData().then(loadRequests);$("lock").onclick=()=>{token="";data=null;cy?.destroy();$("tokenBox").classList.add("hidden");$("editor").classList.add("hidden");$("empty").classList.remove("hidden");chip("Locked",false)};$("treeMode").onclick=()=>{layout="tree";draw($("search").value)};$("networkMode").onclick=()=>{layout="network";draw($("search").value)};$("fit").onclick=()=>cy?.fit(undefined,80);$("search").oninput=e=>draw(e.target.value);$("clearSearch").onclick=()=>{$("search").value="";draw()};$("addPerson").onclick=addPersonModal;$("childBtn").onclick=()=>relationshipModal("child");$("parentBtn").onclick=()=>relationshipModal("parent");$("spouseBtn").onclick=spouseModal;$("focusBtn").onclick=()=>focus(selected.id);$("save").onclick=saveSelected;$("archive").onclick=archive;$("restore").onclick=restore;$("editTab").onclick=()=>{$("editPane").classList.remove("hidden");$("reviewPane").classList.add("hidden");$("editTab").classList.add("active");$("reviewTab").classList.remove("active")};$("reviewTab").onclick=()=>{$("editPane").classList.add("hidden");$("reviewPane").classList.remove("hidden");$("reviewTab").classList.add("active");$("editTab").classList.remove("active");loadRequests()};$("refreshRequests").onclick=loadRequests;$("modalClose").onclick=closeModal;
 </script>
 </body>
 </html>
