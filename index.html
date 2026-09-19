@@ -134,8 +134,8 @@ async function unlockAdmin(){
   if(hash!==a.hash){alert("Incorrect admin password.");return}
   adminMode=true;
   setEditMode(true);
-  $(\"modeChip\").textContent="Admin edit";
-  $(\"modeChip\").className="chip admin";
+  $("modeChip").textContent="Admin edit";
+  $("modeChip").className="chip admin";
   alert("Admin editing enabled. Finish editing will prepare the batch for GitHub approval; no GitHub token is stored or requested.");
 }
 function finishEditing(){
