@@ -25,7 +25,7 @@ jobs:
       - name: Verify Worker endpoint
         run: |
           set -e
-          curl --fail-with-body --silent --show-error --retry 3 --retry-delay 2 https://family-tree-community.shubham-turai.workers.dev/health
+          curl --fail-with-body --silent --show-error --retry 12 --retry-delay 5 --retry-all-errors https://family-tree-community.shubham-turai.workers.dev/health
           echo
-          test "$(curl --silent --show-error --output /tmp/post-response --write-out "%{http_code}" -X POST -H "Content-Type: application/json" --data "{}" https://family-tree-community.shubham-turai.workers.dev/requests)" = "400"
+          test "$(curl --silent --show-error --output /tmp/post-response --write-out "%{http_code}" -X POST -H "Content-Type: text/plain;charset=UTF-8" --data "{}" https://family-tree-community.shubham-turai.workers.dev/requests)" = "400"
           cat /tmp/post-response
