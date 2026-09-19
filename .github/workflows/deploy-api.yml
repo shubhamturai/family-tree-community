@@ -29,5 +29,3 @@ jobs:
           echo
           test "$(curl --silent --show-error --output /tmp/post-response --write-out "%{http_code}" -X POST -H "Content-Type: application/json" --data "{}" https://family-tree-community.shubham-turai.workers.dev/requests)" = "400"
           cat /tmp/post-response
-          echo "OPTIONS response:"
-          curl --silent --show-error -i -X OPTIONS -H "Origin: https://shubhamturai.github.io" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type" https://family-tree-community.shubham-turai.workers.dev/requests
