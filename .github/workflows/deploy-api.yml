@@ -27,5 +27,7 @@ jobs:
           set -e
           curl --fail-with-body --silent --show-error --retry 12 --retry-delay 5 --retry-all-errors https://family-tree-community.shubham-turai.workers.dev/health
           echo
-          test "$(curl --silent --show-error --output /tmp/post-response --write-out "%{http_code}" -X POST -H "Content-Type: text/plain;charset=UTF-8" --data "{}" https://family-tree-community.shubham-turai.workers.dev/requests)" = "400"
+          POST_STATUS="$(curl --silent --show-error --output /tmp/post-response --write-out "%{http_code}" -X POST -H "Content-Type: text/plain;charset=UTF-8" --data "{}" https://family-tree-community.shubham-turai.workers.dev/requests)"
+          echo "POST status: $POST_STATUS"
           cat /tmp/post-response
+          test "$POST_STATUS" = "400"
