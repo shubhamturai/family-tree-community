@@ -258,9 +258,17 @@ async function submitRequest(isAdmin=false){
   try{let r=await fetch("./data/config.json?"+Date.now());if(!r.ok)throw Error("Request service is not configured.");cfg=await r.json()}catch(e){alert("Request service is not configured yet. Please contact the administrator.");return}
   if(!cfg.apiBase){alert("Request service is not configured yet. Please contact the administrator.");return}
   try{
-    let r=await fetch(cfg.apiBase.replace(/\/$/,"")+"/requests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({proposal,source:"public-web"})});
-    let j=await r.json().catch(()=>({}));
-    if(!r.ok)throw Error(j.error||"Request submission failed.");
+    let endpoint=cfg.apiBase.replace(/\/$/,"")+"/requests";
+    let r;
+    try{
+      r=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({proposal,source:"public-web"})});
+    }catch(networkError){
+      throw Error("Could not reach the request service. Please check the API deployment/CORS configuration. "+(networkError?.message||"Network error"));
+    }
+    let raw=await r.text();
+    let j={};
+    try{j=raw?JSON.parse(raw):{}}catch(_){j={raw:raw.slice(0,300)}}
+    if(!r.ok)throw Error((j.error||j.raw||"Request submission failed.")+" [HTTP "+r.status+"]");
     draftClear();
     changes=[];
     setEditMode(false);
