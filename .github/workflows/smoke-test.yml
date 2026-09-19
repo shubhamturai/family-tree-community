@@ -33,7 +33,7 @@ jobs:
             if((await page.title())!=="Family Graph") throw new Error("Wrong public page title");
             await page.waitForSelector("#tree",{timeout:10000});
             await page.waitForTimeout(1500);
-            const apiCheck=await page.evaluate(async()=>{const cfg=await (await fetch("./data/config.json?smoke="+Date.now())).json(); const url=String(cfg.apiBase||"").replace(/\/$/,"")+"/requests"; const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"}); return {url,status:r.status,body:await r.text()};});
+            const apiCheck=await page.evaluate(async()=>{const cfg=await (await fetch("./data/config.json?smoke="+Date.now())).json(); const url=String(cfg.apiBase||"").replace(/\/$/,"")+"/requests"; const r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:"{}"}); return {url,status:r.status,body:await r.text()};});
             if(apiCheck.status!==400) throw new Error("Request API route check failed: "+JSON.stringify(apiCheck));
             if((await page.locator("#tree").innerText()).includes("Unable to load family data")) throw new Error("Family data failed to load");
             const links=await page.locator("a").evaluateAll(xs=>xs.map(x=>x.href));
