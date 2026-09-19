@@ -133,12 +133,6 @@ function draw(q=""){
     layout:{name:"grid",rows:Math.max(1,Math.ceil(Math.sqrt(Math.max(1,nodes.length)))),padding:80}
   });
   cy.on("tap","node",e=>show(byId(e.target.id())));
-  if(editing&&typeof cy.edgehandles==="function"){
-    try{
-      cy.edgehandles({preview:true,hoverDelay:120,snap:true,snapThreshold:60,handleNodes:"node",handlePosition:"middle right",complete:(source,target,addedEdge)=>{if(addedEdge)addedEdge.remove();connectionModal(source.id(),target.id())}});
-      $("connectionHint")?.classList.add("show");
-    }catch(e){console.warn("Edge connection handles unavailable:",e)}
-  }
   if(selectedId&&byId(selectedId)&&cy.getElementById(selectedId).length)cy.getElementById(selectedId).select();
 }
 function renderStats(){}
