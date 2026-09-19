@@ -35,4 +35,6 @@ jobs:
           POST_STATUS="$(curl --silent --show-error --output /tmp/post-response --write-out "%{http_code}" -X POST -H "Content-Type: text/plain;charset=UTF-8" --data "{}" https://family-tree-community.shubham-turai.workers.dev/requests)"
           echo "POST status: $POST_STATUS"
           cat /tmp/post-response
+          echo "Browser-origin POST:"
+          curl --silent --show-error -i -X POST -H "Origin: https://shubhamturai.github.io" -H "Content-Type: text/plain;charset=UTF-8" --data "{}" https://family-tree-community.shubham-turai.workers.dev/requests
           test "$POST_STATUS" = "400"
