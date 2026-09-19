@@ -207,15 +207,7 @@ function requestBody(){
     return {type:c.type,payload:c.payload};
   }).filter(c=>c.type!=="UPDATE_PERSON"||Object.keys(c.payload).length>1);
   let batch={operation:"BATCH_UPDATE",payload:{baseLastUpdated:baseLastUpdated,changes:compact}};
-  return "FG_PROPOSAL\
-"+JSON.stringify(batch)+"\
-FG_PROPOSAL\
-\
-### Proposed changes\
-"+compact.map((c,i)=>(i+1)+". "+(changes[i]?.label||c.type)).join("\
-")+"\
-\
-This batch was created by direct in-place editing. "+(adminMode?"This is an administrator save and is marked approved for automatic application.":"The canonical family graph is unchanged until administrator approval.");
+  return "FG_PROPOSAL\\n"+JSON.stringify(batch)+"\\nFG_PROPOSAL\\n\\n### Proposed changes\\n"+compact.map((c,i)=>(i+1)+". "+(changes[i]?.label||c.type)).join("\\n")+"\\n\\nThis batch was created by direct in-place editing. "+(adminMode?"This is an administrator save and is marked approved for automatic application.":"The canonical family graph is unchanged until administrator approval.");
 }
 function adminSave(){
   if(!adminMode)return false;
