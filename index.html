@@ -177,7 +177,7 @@ function submitRequest(isAdmin=false){
 function loadDraft(){try{let d=JSON.parse(localStorage.getItem(DRAFT_KEY)||"null");if(d?.data?.persons){data=d.data;changes=d.changes||[];baseLastUpdated=d.baseLastUpdated||data.lastUpdated||"";return true}}catch(e){}return false}
 async function setTheme(theme){document.documentElement.dataset.theme=theme;localStorage.setItem("familyGraphTheme",theme);$("themeBtn").textContent=theme==="light"?"☾":"☀︎";if(cy)draw($("search").value)}
 function initTheme(){let t=localStorage.getItem("familyGraphTheme")||((matchMedia("(prefers-color-scheme:light)").matches)?"light":"dark");setTheme(t)}
-function boot(){
+async function boot(){
  try{
   let live=await fetch("./data/family.json?"+Date.now()).then(r=>r.json());liveData=deep(live);baseLastUpdated=live.lastUpdated||"";data=deep(live);loadDraft();renderChanges();draw();
  }catch(e){$("tree").innerHTML='<div style="padding:30px;color:#b42318">Unable to load family data.</div>'}
