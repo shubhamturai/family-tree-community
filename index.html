@@ -220,7 +220,7 @@ function submitRequest(isAdmin=false){
   draftClear();
   window.location.href=url;
 }
-function loadDraft(){try{let raw=localStorage.getItem(DRAFT_KEY),d=raw?JSON.parse(raw):null;if(d?.data?.persons?.length){data=d.data;changes=Array.isArray(d.changes)?d.changes:[];baseLastUpdated=d.baseLastUpdated||data.lastUpdated||"";return true}if(raw)localStorage.removeItem(DRAFT_KEY)}catch(e){try{localStorage.removeItem(DRAFT_KEY)}catch(_){}}return false}
+function loadDraft(){try{let raw=localStorage.getItem(DRAFT_KEY),d=raw?JSON.parse(raw):null;let people=d?.data?.persons;let activeCount=Array.isArray(people)?people.filter(p=>p&&p.recordStatus!=="deleted").length:0;let valid=Array.isArray(people)&&activeCount>0&&d?.data?.relationships&&Array.isArray(d.data.relationships.parentChild)&&Array.isArray(d.data.relationships.spouses);if(valid){data=d.data;changes=Array.isArray(d.changes)?d.changes:[];baseLastUpdated=d.baseLastUpdated||data.lastUpdated||"";return true}if(raw)localStorage.removeItem(DRAFT_KEY)}catch(e){try{localStorage.removeItem(DRAFT_KEY)}catch(_){}}return false}
 async function setTheme(theme){document.documentElement.dataset.theme=theme;localStorage.setItem("familyGraphTheme",theme);$("themeBtn").textContent=theme==="light"?"☾":"☀︎";if(cy)draw($("search").value)}
 function initTheme(){let t=localStorage.getItem("familyGraphTheme")||((matchMedia("(prefers-color-scheme:light)").matches)?"light":"dark");setTheme(t)}
 async function boot(){
