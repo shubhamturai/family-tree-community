@@ -247,27 +247,31 @@ async function unlockAdmin(){
   setEditMode(true);
   $("modeChip").textContent="Admin edit";
   $("modeChip").className="chip admin";
-  $("finishBtn").textContent="Save changes";$("submitChanges").textContent="Save changes";alert("Admin editing enabled. Admin saves are sent as approved GitHub workflow requests and applied automatically.");
+  $("finishBtn").textContent="Save changes";$("submitChanges").textContent="Save changes";alert("Admin editing enabled. Admin saves are applied directly by the administrator.");
 }
 function finishEditing(){
  if(!changes.length){setEditMode(false);return}
  if(adminMode){adminSave();return}
  submitRequest(false);
 }
-function submitRequest(isAdmin=false){
+async function submitRequest(isAdmin=false){
   if(!changes.length){alert("No changes to submit.");return}
   let body=requestBody();
-  let title=(isAdmin?"[ADMIN] ":"")+"[Family Graph] Batch update ("+changes.length+" change(s))";
-  let label=isAdmin?"family:approved":"family:pending";
-  let url="https://github.com/"+REPO+"/issues/new?title="+encodeURIComponent(title)+"&body="+encodeURIComponent(body)+"&labels="+encodeURIComponent(label);
-  if(url.length>7000){
-    navigator.clipboard?.writeText(body).catch(()=>{});
-    alert("The proposal is large. Its full batch payload was copied to your clipboard. Open a new Family Graph issue and paste it into the body.");
-    window.open("https://github.com/"+REPO+"/issues/new?template=family-proposal.md","_blank");
-    return;
-  }
-  draftClear();
-  window.location.href=url;
+  let cfg;
+  try{let r=await fetch("./data/config.json?"+Date.now());if(!r.ok)throw Error("Request service is not configured.");cfg=await r.json()}catch(e){alert("Request service is not configured yet. Please contact the administrator.");return}
+  if(!cfg.apiBase){alert("Request service is not configured yet. Please contact the administrator.");return}
+  let proposal;
+  try{proposal=JSON.parse(body.match(/FG_PROPOSAL\\n([\\s\\S]*?)\\nFG_PROPOSAL/)?.[1]||"")}catch(e){alert("Could not prepare this change request.");return}
+  try{
+    let r=await fetch(cfg.apiBase.replace(/\\/$/,"")+"/requests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({proposal,source:"public-web"})});
+    let j=await r.json().catch(()=>({}));
+    if(!r.ok)throw Error(j.error||"Request submission failed.");
+    draftClear();
+    changes=[];
+    setEditMode(false);
+    alert("Request submitted successfully. Request ID: "+(j.id||"pending"));
+    renderChanges();
+  }catch(e){alert(e.message||"Request submission failed.");}
 }
 function loadDraft(){try{let raw=localStorage.getItem(DRAFT_KEY),d=raw?JSON.parse(raw):null;let people=d?.data?.persons;let activeCount=Array.isArray(people)?people.filter(p=>p&&p.recordStatus!=="deleted").length:0;let valid=Array.isArray(people)&&activeCount>0&&d?.data?.relationships&&Array.isArray(d.data.relationships.parentChild)&&Array.isArray(d.data.relationships.spouses);if(valid){data=d.data;changes=Array.isArray(d.changes)?d.changes:[];baseLastUpdated=d.baseLastUpdated||data.lastUpdated||"";return true}if(raw)localStorage.removeItem(DRAFT_KEY)}catch(e){try{localStorage.removeItem(DRAFT_KEY)}catch(_){}}return false}
 async function setTheme(theme){document.documentElement.dataset.theme=theme;localStorage.setItem("familyGraphTheme",theme);$("themeBtn").textContent=theme==="light"?"☾":"☀︎";if(cy)draw($("search").value)}
