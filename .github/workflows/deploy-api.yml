@@ -22,6 +22,9 @@ jobs:
       - name: Deploy Worker
         working-directory: backend
         run: npx wrangler deploy
+      - name: List Worker deployments
+        working-directory: backend
+        run: npx wrangler deployments list
       - name: Verify Worker endpoint
         run: |
           set -e
