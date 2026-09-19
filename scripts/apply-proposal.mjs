@@ -30,13 +30,13 @@ if(proposal.operation==='ADD_PERSON'){
     dateOfDeath:clean(x.dateOfDeath),lifeStatus:x.dateOfDeath?'deceased':clean(x.lifeStatus)||'unknown',
     birthPlace:clean(x.birthPlace),birthRegion:clean(x.birthRegion),birthCountry:clean(x.birthCountry),
     deathPlace:clean(x.deathPlace),currentLocation:clean(x.currentLocation),
-    occupation:clean(x.occupation)||'',notes:clean(x.notes)||'',photoDataUrl:clean(x.photoDataUrl),recordStatus:'active'
+    occupation:clean(x.occupation)||'',notes:clean(x.notes)||'',maritalStatus:clean(x.maritalStatus)||'unknown',isMarried:Boolean(x.isMarried),photoDataUrl:clean(x.photoDataUrl),recordStatus:'active'
   });
 
 } else if(proposal.operation==='UPDATE_PERSON'){
   const x=proposal.payload||{}, q=d.persons.find(z=>z.id===x.personId);
   if(!q||!validId(x.personId)||q.recordStatus==='deleted') throw new Error('Unknown or archived person ID');
-  for(const k of ['firstName','middleName','familyName','displayName','nickname','maidenName','gender','dateOfBirth','dateOfDeath','birthPlace','birthRegion','birthCountry','deathPlace','currentLocation','occupation','notes','photoDataUrl'])
+  for(const k of ['firstName','middleName','familyName','displayName','nickname','maidenName','gender','dateOfBirth','dateOfDeath','birthPlace','birthRegion','birthCountry','deathPlace','currentLocation','occupation','notes','maritalStatus','isMarried','photoDataUrl'])
     if(k in x) q[k]=clean(x[k]);
   if(q.dateOfDeath&&q.dateOfBirth&&q.dateOfDeath<q.dateOfBirth) throw new Error('Death date cannot precede birth date');
   q.lifeStatus=q.dateOfDeath?'deceased':clean(x.lifeStatus)||q.lifeStatus||'unknown';
@@ -61,7 +61,7 @@ if(proposal.operation==='ADD_PERSON'){
   if(!validId(x.personAId)||!validId(x.personBId)||!has(x.personAId)||!has(x.personBId)||x.personAId===x.personBId) throw new Error('Invalid spouse IDs');
   if(d.persons.find(q=>q.id===x.personAId)?.recordStatus==='deleted'||d.persons.find(q=>q.id===x.personBId)?.recordStatus==='deleted') throw new Error('Cannot relate archived people');
   if(d.relationships.spouses.some(r=>new Set([r.personAId,r.personBId]).size===2&&[r.personAId,r.personBId].includes(x.personAId)&&[r.personAId,r.personBId].includes(x.personBId))) throw new Error('Spouse relationship already exists');
-  d.relationships.spouses.push({personAId:x.personAId,personBId:x.personBId,order:Number(x.order)||1,marriageDate:clean(x.marriageDate),divorceDate:clean(x.divorceDate)});
+  d.relationships.spouses.push({personAId:x.personAId,personBId:x.personBId,order:Number(x.order)||1,marriageDate:clean(x.marriageDate),marriagePlace:clean(x.marriagePlace),status:clean(x.status)||'married',divorceDate:clean(x.divorceDate)}); const a=d.persons.find(q=>q.id===x.personAId), b=d.persons.find(q=>q.id===x.personBId); if(a){a.maritalStatus=(x.status==='married'?'married':clean(x.status)||'unknown');a.isMarried=a.maritalStatus==='married'} if(b){b.maritalStatus=(x.status==='married'?'married':clean(x.status)||'unknown');b.isMarried=b.maritalStatus==='married'}
 
 } else throw new Error('Unsupported operation: '+proposal.operation);
 
