@@ -257,7 +257,6 @@ async function submitRequest(isAdmin=false){
   }catch(e){alert("Could not prepare this change request.");return}
   let cfg;
   try{let r=await fetch("./data/config.json?"+Date.now());if(!r.ok)throw Error("Request service is not configured.");cfg=await r.json()}catch(e){alert("Request service is not configured yet. Please contact the administrator.");return}
-  if(!cfg.apiBase){alert("Request service is not configured yet. Please contact the administrator.");return}
   try{
     let endpoint=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"")+"/requests";
     const payload={method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({proposal,source:"public-web"})};
