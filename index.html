@@ -113,12 +113,60 @@ function show(p){if(!p)return;selectedId=p.id;cy?.nodes().unselect();cy?.getElem
 function renderActions(){let a=$("editActions");a.innerHTML=editing?'<button class="btn primary small" id="childAction">＋ Child</button><button class="btn small" id="parentAction">＋ Parent</button><button class="btn small" id="spouseAction">＋ Spouse</button><button class="btn red small" id="archiveAction">Archive</button>':'<button class="btn primary small" id="startFromPerson">✎ Edit in place</button>';if(editing){$("connectBtn").classList.remove("hidden");$("childAction").onclick=()=>relationshipModal("child");$("parentAction").onclick=()=>relationshipModal("parent");$("spouseAction").onclick=()=>relationshipModal("spouse");$("archiveAction").onclick=archiveSelected}else {$("connectBtn").classList.add("hidden");$("startFromPerson").onclick=()=>setEditMode(true)}}
 function marriageHtml(p){let rs=spouseEdges().filter(r=>r.personAId===p.id||r.personBId===p.id).sort((a,b)=>(a.order||999)-(b.order||999));if(!rs.length)return '<div class="muted">No spouse relationship recorded.</div>';return rs.map(r=>{let other=byId(r.personAId===p.id?r.personBId:r.personAId),st=r.status||((r.divorceDate)?"divorced":"married");return '<div class="marriageBadge">◉ '+esc(st)+' · '+esc(name(other)||"Unknown")+ (r.marriageDate?' · '+esc(fmtDate(r.marriageDate)):"") +'</div>'}).join(" ")}
 function renderRelations(p){let ps=parentEdges().filter(r=>r.childId===p.id).map(r=>(r.role||"parent")+": "+name(byId(r.parentId))),cs=parentEdges().filter(r=>r.parentId===p.id).sort((a,b)=>(a.order||999)-(b.order||999)).map(r=>(r.order||"")+" · "+name(byId(r.childId))),ss=spouseEdges().filter(r=>r.personAId===p.id||r.personBId===p.id).sort((a,b)=>(a.order||999)-(b.order||999)).map(r=>{let o=byId(r.personAId===p.id?r.personBId:r.personAId);return (name(o)||"Unknown")+(r.marriageDate?" · "+fmtDate(r.marriageDate):"")+(r.marriagePlace?" · "+r.marriagePlace:"")+(r.status?" · "+r.status:"")});$("rels").innerHTML='<div><span>Parents</span><b>'+esc(ps.join(" · ")||"None")+'</b></div><div><span>Spouses</span><b>'+esc(ss.join(" · ")||"None")+'</b></div><div><span>Children · ordered</span><b>'+esc(cs.join(" · ")||"None")+'</b></div>'}
-function draw(q=""){let light=document.documentElement.dataset.theme==="light",people=data.persons.filter(active).filter(p=>!q||name(p).toLowerCase().includes(q.toLowerCase())),ids=new Set(people.map(p=>p.id)),nodes=people.map(p=>{let g=p.gender||"unknown",icon=g==="male"?"♂":g==="female"?"♀":"•";return {data:{id:p.id,label:icon+"  "+name(p),photo:photoSrc(p),gender:g}}}),edges=[];parentEdges().forEach(r=>{if(ids.has(r.parentId)&&ids.has(r.childId))edges.push({data:{id:"p"+r.parentId+r.childId,source:r.parentId,target:r.childId}})});spouseEdges().forEach(r=>{if(ids.has(r.personAId)&&ids.has(r.personBId))edges.push({data:{id:"s"+r.personAId+r.personBId,source:r.personAId,target:r.personBId,label:(r.status==="divorced"?"Divorced":r.marriageDate?fmtDate(r.marriageDate):"Married")},classes:"spouse"})});if(cy)cy.destroy();cy=cytoscape({container:$("tree"),elements:{nodes,edges},style:[{selector:"node",style:{"background-color":light?"#ffffff":"#15243e","background-image":"data(photo)","background-fit":"cover","background-clip":"node","border-color":light?"#8a98ad":"#42577a","border-width":2,"label":"data(label)","color":light?"#172033":"#eef4ff","font-size":12,"font-weight":800,"text-wrap":"wrap","text-max-width":"110px","text-valign":"center","text-halign":"center","width":150,"height":92,"shape":"round-rectangle","text-background-color":light?"rgba(255,255,255,0.87)":"rgba(7,16,27,0.85)","text-background-opacity":0.9,"text-background-padding":"5px","text-margin-y":30}},{selector:"node[gender=\"male\"]",style:{"border-color":"#55a8ff","border-width":3}},{selector:"node[gender=\"female\"]",style:{"border-color":"#ff78b5","border-width":3}},{selector:"node[gender=\"unknown\"],node[gender=\"other\"]",style:{"border-color":"#aab6c8","border-width":2}},{selector:"node:selected",style:{"border-width":3,"border-color":"#8d80ff","shadow-blur":18,"shadow-color":"#7568f2","shadow-opacity":.7}},{selector:"edge",style:{"curve-style":"bezier","line-color":light?"#7d8da4":"#52647f","width":2,"target-arrow-shape":"triangle","target-arrow-color":light?"#7d8da4":"#52647f"}},{selector:"edge.spouse",style:{"line-style":"dashed","line-color":"#b8860b","width":3,"target-arrow-shape":"none","label":"data(label)","color":"#d7a62f","font-size":10,"font-weight":800,"text-background-color":light?"#ffffff":"#07101b","text-background-opacity":0.85,"text-background-padding":"3px"}}],layout:layoutMode==="tree"?{name:"dagre",rankDir:"TB",rankSep:105,nodeSep:35,padding:90}:{name:"cose",nodeRepulsion:6500,idealEdgeLength:185,padding:80}});
-if(editing&&typeof cy.edgehandles==="function"){
-  cy.edgehandles({preview:true,hoverDelay:120,snap:true,snapThreshold:60,handleNodes:"node",handlePosition:"middle right",handleInDraw:true,handleOutDraw:true,edgeType:()=>"flat",loopAllowed:false,complete:(source,target,addedEdge)=>{addedEdge.remove();$("connectionHint").classList.remove("show");connectionModal(source.id(),target.id())}});
-  $("connectionHint").classList.add("show");
+function draw(q=""){
+  let light=document.documentElement.dataset.theme==="light";
+  let people=data.persons.filter(active).filter(p=>!q||name(p).toLowerCase().includes(q.toLowerCase()));
+  let ids=new Set(people.map(p=>p.id));
+  let nodes=people.map(p=>{let g=p.gender||"unknown",icon=g==="male"?"♂":g==="female"?"♀":"•";return {data:{id:p.id,label:icon+"  "+name(p),photo:photoSrc(p),gender:g}}});
+  let edges=[];
+  parentEdges().forEach(r=>{if(ids.has(r.parentId)&&ids.has(r.childId))edges.push({data:{id:"p"+r.parentId+r.childId,source:r.parentId,target:r.childId}})});
+  spouseEdges().forEach(r=>{if(ids.has(r.personAId)&&ids.has(r.personBId))edges.push({data:{id:"s"+r.personAId+r.personBId,source:r.personAId,target:r.personBId,label:(r.status==="divorced"?"Divorced":r.marriageDate?fmtDate(r.marriageDate):"Married")},classes:"spouse"})});
+  if(cy)cy.destroy();
+  cy=cytoscape({
+    container:$("tree"),
+    elements:{nodes,edges},
+    style:[
+      {selector:"node",style:{"background-color":light?"#ffffff":"#15243e","background-image":"data(photo)","background-fit":"cover","background-clip":"node","border-color":light?"#8a98ad":"#42577a","border-width":2,"label":"data(label)","color":light?"#172033":"#eef4ff","font-size":12,"font-weight":800,"text-wrap":"wrap","text-max-width":"110px","text-valign":"center","text-halign":"center","width":150,"height":92,"shape":"round-rectangle","text-background-color":light?"rgba(255,255,255,0.87)":"rgba(7,16,27,0.85)","text-background-opacity":0.9,"text-background-padding":"5px","text-margin-y":30}},
+      {selector:"node[gender=\"male\"]",style:{"border-color":"#55a8ff","border-width":3}},
+      {selector:"node[gender=\"female\"]",style:{"border-color":"#ff78b5","border-width":3}},
+      {selector:"node[gender=\"unknown\"],node[gender=\"other\"]",style:{"border-color":"#aab6c8","border-width":2}},
+      {selector:"node:selected",style:{"border-width":3,"border-color":"#8d80ff","shadow-blur":18,"shadow-color":"#7568f2","shadow-opacity":.7}},
+      {selector:"edge",style:{"curve-style":"bezier","line-color":light?"#7d8da4":"#52647f","width":2,"target-arrow-shape":"triangle","target-arrow-color":light?"#7d8da4":"#52647f"}},
+      {selector:"edge.spouse",style:{"line-style":"dashed","line-color":"#b8860b","width":3,"target-arrow-shape":"none","label":"data(label)","color":"#d7a62f","font-size":10,"font-weight":800,"text-background-color":light?"#ffffff":"#07101b","text-background-opacity":0.85,"text-background-padding":"3px"}}
+    ],
+    layout:{name:"preset",fit:false}
+  });
+
+  if(layoutMode==="tree"){
+    let level=new Map(), remaining=new Set(people.map(p=>p.id)), roots=people.filter(p=>!parentEdges().some(r=>r.childId===p.id&&ids.has(r.parentId)));
+    let frontier=roots.length?roots:people.slice(0,1);
+    frontier.forEach(p=>{level.set(p.id,0);remaining.delete(p.id)});
+    while(frontier.length){
+      let next=[];
+      parentEdges().forEach(r=>{if(!ids.has(r.parentId)||!ids.has(r.childId)||level.has(r.childId))return;if(level.has(r.parentId)){level.set(r.childId,level.get(r.parentId)+1);remaining.delete(r.childId);next.push(byId(r.childId))}});
+      frontier=next;
+    }
+    remaining.forEach(id=>level.set(id,0));
+    let groups={};
+    people.forEach(p=>{let l=level.get(p.id)||0;(groups[l]??=[]).push(p)});
+    let maxLevel=Math.max(0,...Object.keys(groups).map(Number)), positions={};
+    for(let l=0;l<=maxLevel;l++){
+      let arr=groups[l]||[], spacing=190, y=90+l*150, total=(arr.length-1)*spacing;
+      arr.forEach((p,i)=>{positions[p.id]={x:Math.max(120,window.innerWidth/2-total/2+i*spacing),y}});
+    }
+    cy.nodes().forEach(n=>n.position(positions[n.id()]||{x:120,y:90}));
+    cy.layout({name:"preset",fit:true,padding:90}).run();
+  }else{
+    cy.layout({name:"cose",nodeRepulsion:6500,idealEdgeLength:185,padding:80,animate:false}).run();
+  }
+
+  if(editing&&typeof cy.edgehandles==="function"){
+    cy.edgehandles({preview:true,hoverDelay:120,snap:true,snapThreshold:60,handleNodes:"node",handlePosition:"middle right",handleInDraw:true,handleOutDraw:true,edgeType:()=> "flat",loopAllowed:false,complete:(source,target,addedEdge)=>{addedEdge.remove();$("connectionHint").classList.remove("show");connectionModal(source.id(),target.id())}});
+    $("connectionHint").classList.add("show");
+  }
+  cy.on("tap","node",e=>{const id=e.target.id();if(connectMode&&pendingConnect&&id!==pendingConnect){const source=pendingConnect;pendingConnect=null;connectMode=false;$("connectBtn").textContent="⌁ Connect";$("connectBtn").classList.remove("primary");connectionModal(source,id)}else show(byId(id))});
+  if(selectedId&&byId(selectedId)&&cy.getElementById(selectedId).length)cy.getElementById(selectedId).select();
 }
-cy.on("tap","node",e=>{const id=e.target.id();if(connectMode&&pendingConnect&&id!==pendingConnect){const source=pendingConnect;pendingConnect=null;connectMode=false;$("connectBtn").textContent="⌁ Connect";$("connectBtn").classList.remove("primary");relationshipModal("child",source,id)}else show(byId(id))});if(selectedId&&byId(selectedId))cy.getElementById(selectedId).select()}
 function renderStats(){}
 async function readPhoto(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=720,scale=Math.min(1,max/Math.max(img.width,img.height)),w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);resolve(c.toDataURL("image/jpeg",.82))};img.onerror=reject;img.src=r.result};r.onerror=reject;r.readAsDataURL(file)})}
 async function applyPerson(){if(!editing||!selectedId)return;let p=byId(selectedId),dob=parseDate($("dob").value),dod=parseDate($("dod").value);if($("dob").value.trim()&&!dob){alert("DOB must be DD/MM/YYYY");return}if($("dod").value.trim()&&!dod){alert("Death date must be DD/MM/YYYY");return}if(dob&&dod&&dod<dob){alert("Death date cannot be before DOB");return}let display=($("display").value.trim()||[$("first").value.trim(),$("middle").value.trim(),$("family").value.trim()].filter(Boolean).join(" ")).trim();if(!display){alert("Name is required");return}Object.assign(p,{firstName:$("first").value.trim(),middleName:$("middle").value.trim(),familyName:$("family").value.trim(),displayName:display,gender:$("gender").value,nickname:$("nick").value.trim(),maidenName:$("maiden").value.trim(),dateOfBirth:dob,dateOfDeath:dod,lifeStatus:dod?"deceased":(p.lifeStatus||"unknown"),birthPlace:$("birthPlace").value.trim(),birthRegion:$("birthRegion").value.trim(),birthCountry:$("birthCountry").value.trim(),deathPlace:$("deathPlace").value.trim(),currentLocation:$("location").value.trim(),occupation:$("occupation").value.trim(),notes:$("notes").value.trim(),maritalStatus:$("maritalStatus").value,isMarried:$("maritalStatus").value==="married",recordStatus:"active"});record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Updated "+display);draw($("search").value);show(p)}
