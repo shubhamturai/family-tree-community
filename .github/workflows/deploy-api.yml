@@ -22,3 +22,8 @@ jobs:
       - name: Deploy Worker
         working-directory: backend
         run: npx wrangler deploy
+      - name: Verify Worker endpoint
+        run: |
+          set -e
+          curl --fail-with-body --silent --show-error --retry 3 --retry-delay 2 https://family-tree-community.shubham-turai.workers.dev/health
+          echo
