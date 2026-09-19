@@ -260,7 +260,7 @@ async function submitRequest(isAdmin=false){
   if(!cfg.apiBase){alert("Request service is not configured yet. Please contact the administrator.");return}
   try{
     let endpoint=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"")+"/requests";
-    const payload={method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({proposal,source:"public-web"})};
+    const payload={method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({proposal,source:"public-web"})};
     let r;
     try{
       r=await fetch(endpoint,payload);
