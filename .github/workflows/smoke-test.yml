@@ -1,0 +1,45 @@
+name: Family Graph smoke test
+
+on:
+  workflow_run:
+    workflows: ["Deploy Family Graph"]
+    types: [completed]
+
+jobs:
+  smoke:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Playwright
+        run: npm install --no-save playwright
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser smoke test
+        env:
+          BASE_URL: https://shubhamturai.github.io/family-tree-community/
+        run: |
+          node - <<'NODE'
+          const { chromium } = require("playwright");
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const page=await browser.newPage();
+            const errors=[];
+            page.on("pageerror",e=>errors.push(String(e)));
+            await page.goto(process.env.BASE_URL,{waitUntil:"networkidle",timeout:60000});
+            if((await page.title())!=="Family Graph") throw new Error("Wrong public page title");
+            await page.waitForSelector("#tree",{timeout:10000});
+            await page.waitForTimeout(1500);
+            if((await page.locator("#tree").innerText()).includes("Unable to load family data")) throw new Error("Family data failed to load");
+            const links=await page.locator("a").evaluateAll(xs=>xs.map(x=>x.href));
+            if(links.some(x=>x.includes("/issues/new"))) throw new Error("Public page still contains a GitHub Issues redirect");
+            await page.goto(process.env.BASE_URL+"admin.html",{waitUntil:"networkidle",timeout:60000});
+            if((await page.title())!=="Family Graph — Admin Studio") throw new Error("Wrong admin page title");
+            if(errors.length) throw new Error("Browser page errors: "+errors.join(" | "));
+            await browser.close();
+            console.log("Family Graph smoke test passed.");
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
