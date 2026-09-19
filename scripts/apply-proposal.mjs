@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
 const body=process.env.ISSUE_BODY||'';
-const m=body.match(/FG_PROPOSAL\s*\n([\s\S]*?)\nFG_PROPOSAL/);
+const m=body.match(/FG_PROPOSAL\\s*\\n([\\s\\S]*?)\\nFG_PROPOSAL/);
 if(!m) throw new Error('Missing FG_PROPOSAL block');
 
 const proposal=JSON.parse(m[1]);
@@ -11,11 +11,12 @@ d.relationships ||= {parentChild:[],spouses:[]};
 d.relationships.parentChild ||= [];
 d.relationships.spouses ||= [];
 
-const validId=x=>typeof x==='string'&&/^P\d{6}$/.test(x);
+const validId=x=>typeof x==='string'&&/^P\\d{6}$/.test(x);
 const has=x=>d.persons.some(p=>p.id===x);
 const clean=x=>typeof x==='string'?x.trim():null;
 const nextId=()=>`P${String(Math.max(0,...d.persons.map(x=>Number(x.id?.slice(1))||0))+1).padStart(6,'0')}`;
 
+function applyOne(proposal){
 if(proposal.operation==='ADD_PERSON'){
   const x=proposal.payload||{};
   const display=clean(x.displayName)||[x.firstName,x.middleName,x.familyName].filter(Boolean).join(' ');
@@ -64,6 +65,32 @@ if(proposal.operation==='ADD_PERSON'){
 
 } else throw new Error('Unsupported operation: '+proposal.operation);
 
+}
+
+function savePhoto(person){
+  if(!person?.photoDataUrl) return;
+  const m=String(person.photoDataUrl).match(/^data:image\\/(jpeg|jpg|png|webp);base64,(.+)$/);
+  if(!m) throw new Error('Invalid profile photo data');
+  const ext=m[1]==='jpg'?'jpg':m[1];
+  fs.mkdirSync('data/photos',{recursive:true});
+  fs.writeFileSync(`data/photos/${person.id}.${ext}`,Buffer.from(m[2],'base64'));
+  person.photoUrl=`./photos/${person.id}.${ext}`;
+  delete person.photoDataUrl;
+}
+
+if(proposal.operation==='BATCH_UPDATE'){
+  const p=proposal.payload||{};
+  if(p.baseLastUpdated && p.baseLastUpdated!==d.lastUpdated) throw new Error('Stale proposal: the family graph changed after this edit started. Please reload and submit again.');
+  const list=Array.isArray(p.changes)?p.changes:[];
+  if(!list.length) throw new Error('Batch contains no changes');
+  for(const c of list){
+    if(!c?.type) throw new Error('Invalid batch change');
+    applyOne({operation:c.type,payload:c.payload||{}});
+  }
+}
+else applyOne(proposal);
+
+for(const p of d.persons) if(p.photoDataUrl) savePhoto(p);
 d.lastUpdated=new Date().toISOString();
-fs.writeFileSync('data/family.json',JSON.stringify(d,null,2)+'\n');
+fs.writeFileSync('data/family.json',JSON.stringify(d,null,2)+'\\n');
 console.log('Applied '+proposal.operation);
