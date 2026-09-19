@@ -255,30 +255,20 @@ async function submitRequest(isAdmin=false){
     if(a<0||b<0)throw Error("Proposal markers missing");
     proposal=JSON.parse(body.slice(a+marker.length,b).trim());
   }catch(e){alert("Could not prepare this change request.");return}
-  let cfg;
-  try{let r=await fetch("./data/config.json?"+Date.now());if(!r.ok)throw Error("Request service is not configured.");cfg=await r.json()}catch(e){alert("Request service is not configured yet. Please contact the administrator.");return}
+  let cfg={};
+  try{let r=await fetch("./data/config.json?"+Date.now());if(r.ok)cfg=await r.json()}catch(_){}
+  const endpoint=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"")+"/requests";
+  const payload={proposal,source:"public-web"};
   try{
-    let endpoint=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"")+"/requests";
-    const payload={method:"POST",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({proposal,source:"public-web"})};
-    let r;
-    try{
-      r=await fetch(endpoint,payload);
-      if(r.status===404 && endpoint!==REQUEST_API_FALLBACK+"/requests") r=await fetch(REQUEST_API_FALLBACK+"/requests",payload);
-    }catch(networkError){
-      if(endpoint!==REQUEST_API_FALLBACK+"/requests"){
-        try{r=await fetch(REQUEST_API_FALLBACK+"/requests",payload)}catch(_){throw Error("Could not reach the request service. Please check the API deployment/CORS configuration. "+(networkError?.message||"Network error"));}
-      }else throw Error("Could not reach the request service. Please check the API deployment/CORS configuration. "+(networkError?.message||"Network error"));
-    }
-    let raw=await r.text();
-    let j={};
-    try{j=raw?JSON.parse(raw):{}}catch(_){j={raw:raw.slice(0,300)}}
-    if(!r.ok)throw Error((j.error||j.raw||"Request submission failed.")+" [HTTP "+r.status+"]");
+    await fetch(endpoint,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify(payload)});
     draftClear();
     changes=[];
     setEditMode(false);
-    alert("Request submitted successfully. Request ID: "+(j.id||"pending"));
+    alert("Request submitted successfully. It is now pending administrator review.");
     renderChanges();
-  }catch(e){alert(e.message||"Request submission failed.");}
+  }catch(e){
+    alert("Could not submit the change request. Please try again. "+(e?.message||"Network error"));
+  }
 }
 function loadDraft(){try{let raw=localStorage.getItem(DRAFT_KEY),d=raw?JSON.parse(raw):null;let people=d?.data?.persons;let activeCount=Array.isArray(people)?people.filter(p=>p&&p.recordStatus!=="deleted").length:0;let valid=Array.isArray(people)&&activeCount>0&&d?.data?.relationships&&Array.isArray(d.data.relationships.parentChild)&&Array.isArray(d.data.relationships.spouses);if(valid){data=d.data;changes=Array.isArray(d.changes)?d.changes:[];baseLastUpdated=d.baseLastUpdated||data.lastUpdated||"";return true}if(raw)localStorage.removeItem(DRAFT_KEY)}catch(e){try{localStorage.removeItem(DRAFT_KEY)}catch(_){}}return false}
 async function setTheme(theme){document.documentElement.dataset.theme=theme;localStorage.setItem("familyGraphTheme",theme);$("themeBtn").textContent=theme==="light"?"☾":"☀︎";if(cy)draw($("search").value)}
