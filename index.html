@@ -194,7 +194,7 @@ function createModalPerson(prefix){let first=$(prefix+"First").value.trim(),fami
 function addPerson(){if(!editing)setEditMode(true);openModal("Add person",newPersonFields("new"),()=>{try{let id=createModalPerson("new");closeModal();draw($("search").value);show(byId(id))}catch(e){alert(e.message)}})}
 function openModal(title,html,saveFn){$("modalTitle").textContent=title;$("modalBody").innerHTML=html;$("modal").classList.add("open");$("modalSave").onclick=saveFn;$("modalCancel").onclick=closeModal;$("modalClose").onclick=closeModal}
 function closeModal(){$("modal").classList.remove("open")}
-function requestBody(){let batch={operation:"BATCH_UPDATE",payload:{baseLastUpdated:baseLastUpdated,changes:changes.map(c=>({type:c.type,payload:c.payload}))}};return"FG_PROPOSAL\n"+JSON.stringify(batch)+"\nFG_PROPOSAL\n\n### Proposed changes\n"+changes.map((c,i)=>(i+1)+". "+c.label).join("\n")+"\n\nThis batch was created by direct in-place editing. The canonical family graph is unchanged until administrator approval."}
+function requestBody(){let batch={operation:"BATCH_UPDATE",payload:{baseLastUpdated:baseLastUpdated,changes:changes.map(c=>({type:c.type,payload:c.payload}))}};return"FG_PROPOSAL\n"+JSON.stringify(batch)+"\nFG_PROPOSAL\n\n### Proposed changes\n"+changes.map((c,i)=>(i+1)+". "+c.label).join("\n")+"\n\nThis batch was created by direct in-place editing. "+(adminMode?"This is an administrator save and is marked approved for automatic application.":"The canonical family graph is unchanged until administrator approval.")}
 function adminSave(){
   if(!adminMode)return false;
   submitRequest(true);
