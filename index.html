@@ -89,7 +89,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 
 <script>
 const REPO="shubhamturai/family-tree-community",DRAFT_KEY="familyGraphDraftV5",AUTH_KEY="familyGraphAdminAuth";
-let data=null,liveData=null,cy=null,layoutMode="tree",selectedId=null,editing=false,adminMode=false,baseLastUpdated="",changes=[];
+let data=null,liveData=null,cy=null,layoutMode="tree",selectedId=null,editing=false,adminMode=false,adminPassword=null,baseLastUpdated="",changes=[];
 const $=id=>document.getElementById(id),byId=id=>data?.persons.find(p=>p.id===id),active=p=>p&&p.recordStatus!=="deleted",name=p=>p&&(p.displayName||[p.firstName,p.middleName,p.familyName].filter(Boolean).join(" "));
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
 function deep(v){return JSON.parse(JSON.stringify(v))}
@@ -226,6 +226,7 @@ async function unlockAdmin(){
   let bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:salt,iterations:150000,hash:"SHA-256"},k,256);
   let hash=btoa(String.fromCharCode(...new Uint8Array(bits)));
   if(hash!==a.hash){alert("Incorrect admin password.");return}
+  adminPassword=p;
   adminMode=true;
   setEditMode(true);
   $("modeChip").textContent="Admin edit";
@@ -250,17 +251,25 @@ async function submitRequest(isAdmin=false){
   }catch(e){alert("Could not prepare this change request.");return}
   let cfg={};
   try{let r=await fetch("./data/config.json?"+Date.now());if(r.ok)cfg=await r.json()}catch(_){}
-  const endpoint=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"")+"/requests";
-  const payload={proposal,source:"public-web"};
+  const endpoint=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"");
   try{
-    await fetch(endpoint,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify(payload)});
-    draftClear();
-    changes=[];
-    setEditMode(false);
+    if(isAdmin){
+      if(!adminPassword){alert("Admin session expired. Unlock admin mode again.");return}
+      const r=await fetch(endpoint+"/admin/apply",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+adminPassword},body:JSON.stringify({proposal})});
+      let result={};try{result=await r.json()}catch(_){}
+      if(!r.ok)throw Error(result.error||("Admin save failed (HTTP "+r.status+")"));
+      draftClear();changes=[];data=deep(liveData);baseLastUpdated=liveData.lastUpdated||"";
+      setEditMode(false);adminMode=false;adminPassword=null;
+      alert("Changes applied directly to the published family graph.");
+      renderChanges();draw();
+      return;
+    }
+    await fetch(endpoint+"/requests",{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:JSON.stringify({proposal,source:"public-web"})});
+    draftClear();changes=[];setEditMode(false);
     alert("Request submitted successfully. It is now pending administrator review.");
     renderChanges();
   }catch(e){
-    alert("Could not submit the change request. Please try again. "+(e?.message||"Network error"));
+    alert((isAdmin?"Could not apply the administrator changes. ":"Could not submit the change request. Please try again. ")+(e?.message||"Network error"));
   }
 }
 function loadDraft(){try{let raw=localStorage.getItem(DRAFT_KEY),d=raw?JSON.parse(raw):null;let people=d?.data?.persons;let activeCount=Array.isArray(people)?people.filter(p=>p&&p.recordStatus!=="deleted").length:0;let valid=Array.isArray(people)&&activeCount>0&&d?.data?.relationships&&Array.isArray(d.data.relationships.parentChild)&&Array.isArray(d.data.relationships.spouses);if(valid){data=d.data;changes=Array.isArray(d.changes)?d.changes:[];baseLastUpdated=d.baseLastUpdated||data.lastUpdated||"";return true}if(raw)localStorage.removeItem(DRAFT_KEY)}catch(e){try{localStorage.removeItem(DRAFT_KEY)}catch(_){}}return false}
