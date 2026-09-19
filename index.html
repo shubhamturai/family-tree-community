@@ -244,6 +244,7 @@ function finishEditing(){
  if(adminMode){adminSave();return}
  submitRequest(false);
 }
+const REQUEST_API_FALLBACK="https://family-tree-community.shubham-turai.workers.dev";
 async function submitRequest(isAdmin=false){
   if(!changes.length){alert("No changes to submit.");return}
   let proposal;
@@ -258,12 +259,16 @@ async function submitRequest(isAdmin=false){
   try{let r=await fetch("./data/config.json?"+Date.now());if(!r.ok)throw Error("Request service is not configured.");cfg=await r.json()}catch(e){alert("Request service is not configured yet. Please contact the administrator.");return}
   if(!cfg.apiBase){alert("Request service is not configured yet. Please contact the administrator.");return}
   try{
-    let endpoint=cfg.apiBase.replace(/\/$/,"")+"/requests";
+    let endpoint=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"")+"/requests";
+    const payload={method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({proposal,source:"public-web"})};
     let r;
     try{
-      r=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({proposal,source:"public-web"})});
+      r=await fetch(endpoint,payload);
+      if(r.status===404 && endpoint!==REQUEST_API_FALLBACK+"/requests") r=await fetch(REQUEST_API_FALLBACK+"/requests",payload);
     }catch(networkError){
-      throw Error("Could not reach the request service. Please check the API deployment/CORS configuration. "+(networkError?.message||"Network error"));
+      if(endpoint!==REQUEST_API_FALLBACK+"/requests"){
+        try{r=await fetch(REQUEST_API_FALLBACK+"/requests",payload)}catch(_){throw Error("Could not reach the request service. Please check the API deployment/CORS configuration. "+(networkError?.message||"Network error"));}
+      }else throw Error("Could not reach the request service. Please check the API deployment/CORS configuration. "+(networkError?.message||"Network error"));
     }
     let raw=await r.text();
     let j={};
