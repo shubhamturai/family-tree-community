@@ -30,13 +30,13 @@ if(proposal.operation==='ADD_PERSON'){
     dateOfDeath:clean(x.dateOfDeath),lifeStatus:x.dateOfDeath?'deceased':clean(x.lifeStatus)||'unknown',
     birthPlace:clean(x.birthPlace),birthRegion:clean(x.birthRegion),birthCountry:clean(x.birthCountry),
     deathPlace:clean(x.deathPlace),currentLocation:clean(x.currentLocation),
-    occupation:clean(x.occupation)||'',notes:clean(x.notes)||'',recordStatus:'active'
+    occupation:clean(x.occupation)||'',notes:clean(x.notes)||'',photoDataUrl:clean(x.photoDataUrl),recordStatus:'active'
   });
 
 } else if(proposal.operation==='UPDATE_PERSON'){
   const x=proposal.payload||{}, q=d.persons.find(z=>z.id===x.personId);
   if(!q||!validId(x.personId)||q.recordStatus==='deleted') throw new Error('Unknown or archived person ID');
-  for(const k of ['firstName','middleName','familyName','displayName','nickname','maidenName','gender','dateOfBirth','dateOfDeath','birthPlace','birthRegion','birthCountry','deathPlace','currentLocation','occupation','notes'])
+  for(const k of ['firstName','middleName','familyName','displayName','nickname','maidenName','gender','dateOfBirth','dateOfDeath','birthPlace','birthRegion','birthCountry','deathPlace','currentLocation','occupation','notes','photoDataUrl'])
     if(k in x) q[k]=clean(x[k]);
   if(q.dateOfDeath&&q.dateOfBirth&&q.dateOfDeath<q.dateOfBirth) throw new Error('Death date cannot precede birth date');
   q.lifeStatus=q.dateOfDeath?'deceased':clean(x.lifeStatus)||q.lifeStatus||'unknown';
