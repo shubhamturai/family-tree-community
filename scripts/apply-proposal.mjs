@@ -74,7 +74,7 @@ function savePhoto(person){
   const ext=m[1]==='jpg'?'jpg':m[1];
   fs.mkdirSync('data/photos',{recursive:true});
   fs.writeFileSync(`data/photos/${person.id}.${ext}`,Buffer.from(m[2],'base64'));
-  person.photoUrl=`./photos/${person.id}.${ext}`;
+  person.photoUrl=`./data/photos/${person.id}.${ext}`;
   delete person.photoDataUrl;
 }
 
