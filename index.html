@@ -91,7 +91,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 <div id="modal" class="modal"><div class="modalBox"><div class="modalHead"><h2 id="modalTitle"></h2><button id="modalClose" class="btn small">Close</button></div><div id="modalBody" class="modalBody"></div><div class="modalFoot"><button id="modalCancel" class="btn">Cancel</button><button id="modalSave" class="btn primary">Apply</button></div></div></div>
 
 <script>
-const REPO="shubhamturai/family-tree-community",DRAFT_KEY="familyGraphDraftV4",AUTH_KEY="familyGraphAdminAuth";
+const REPO="shubhamturai/family-tree-community",DRAFT_KEY="familyGraphDraftV5",AUTH_KEY="familyGraphAdminAuth";
 let data=null,liveData=null,cy=null,layoutMode="tree",selectedId=null,editing=false,adminMode=false,baseLastUpdated="",changes=[];
 const $=id=>document.getElementById(id),byId=id=>data?.persons.find(p=>p.id===id),active=p=>p&&p.recordStatus!=="deleted",name=p=>p&&(p.displayName||[p.firstName,p.middleName,p.familyName].filter(Boolean).join(" "));
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
@@ -220,7 +220,7 @@ function submitRequest(isAdmin=false){
   draftClear();
   window.location.href=url;
 }
-function loadDraft(){try{let d=JSON.parse(localStorage.getItem(DRAFT_KEY)||"null");if(d?.data?.persons){data=d.data;changes=d.changes||[];baseLastUpdated=d.baseLastUpdated||data.lastUpdated||"";return true}}catch(e){}return false}
+function loadDraft(){try{let raw=localStorage.getItem(DRAFT_KEY),d=raw?JSON.parse(raw):null;if(d?.data?.persons?.length){data=d.data;changes=Array.isArray(d.changes)?d.changes:[];baseLastUpdated=d.baseLastUpdated||data.lastUpdated||"";return true}if(raw)localStorage.removeItem(DRAFT_KEY)}catch(e){try{localStorage.removeItem(DRAFT_KEY)}catch(_){}}return false}
 async function setTheme(theme){document.documentElement.dataset.theme=theme;localStorage.setItem("familyGraphTheme",theme);$("themeBtn").textContent=theme==="light"?"☾":"☀︎";if(cy)draw($("search").value)}
 function initTheme(){let t=localStorage.getItem("familyGraphTheme")||((matchMedia("(prefers-color-scheme:light)").matches)?"light":"dark");setTheme(t)}
 async function boot(){
