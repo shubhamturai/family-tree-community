@@ -1,4 +1,4 @@
-const cors={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"Content-Type, Authorization, X-Requested-With","Access-Control-Allow-Methods":"GET, POST, OPTIONS","Access-Control-Max-Age":"86400","Access-Control-Allow-Private-Network":"true","Vary":"Origin"};
+const cors={"Access-Control-Allow-Origin":"https://shubhamturai.github.io","Access-Control-Allow-Headers":"Content-Type, Authorization, X-Requested-With","Access-Control-Allow-Methods":"GET, POST, OPTIONS","Access-Control-Max-Age":"86400","Access-Control-Allow-Private-Network":"true","Vary":"Origin"};
 const json=(b,s=200)=>new Response(JSON.stringify(b),{status:s,headers:{"Content-Type":"application/json",...cors}});
 const clean=x=>typeof x==="string"?x.trim():null;
 const validId=x=>typeof x==="string"&&/^P\d{6}$/.test(x);
