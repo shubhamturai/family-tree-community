@@ -1,11 +1,11 @@
-name = "family-graph-request-api"
+name = "family-tree-community"
 main = "worker.js"
 compatibility_date = "2026-09-19"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "family-graph-requests"
-database_id = "REPLACE_WITH_CLOUDFLARE_D1_DATABASE_ID"
+database_name = "family-tree-community-db"
+database_id = "f8872a81-b195-4436-b914-89c3b1096f82"
 
 [vars]
 GITHUB_OWNER = "shubhamturai"
