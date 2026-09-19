@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
 const body=process.env.ISSUE_BODY||'';
-const m=body.match(/FG_PROPOSAL\\s*\\n([\\s\\S]*?)\\nFG_PROPOSAL/);
+const m=body.match(/FG_PROPOSAL\s*\n([\s\S]*?)\nFG_PROPOSAL/);
 if(!m) throw new Error('Missing FG_PROPOSAL block');
 
 const proposal=JSON.parse(m[1]);
@@ -11,7 +11,7 @@ d.relationships ||= {parentChild:[],spouses:[]};
 d.relationships.parentChild ||= [];
 d.relationships.spouses ||= [];
 
-const validId=x=>typeof x==='string'&&/^P\\d{6}$/.test(x);
+const validId=x=>typeof x==='string'&&/^P\d{6}$/.test(x);
 const has=x=>d.persons.some(p=>p.id===x);
 const clean=x=>typeof x==='string'?x.trim():null;
 const nextId=()=>`P${String(Math.max(0,...d.persons.map(x=>Number(x.id?.slice(1))||0))+1).padStart(6,'0')}`;
@@ -69,7 +69,7 @@ if(proposal.operation==='ADD_PERSON'){
 
 function savePhoto(person){
   if(!person?.photoDataUrl) return;
-  const m=String(person.photoDataUrl).match(/^data:image\\/(jpeg|jpg|png|webp);base64,(.+)$/);
+  const m=String(person.photoDataUrl).match(/^data:image\/(jpeg|jpg|png|webp);base64,(.+)$/);
   if(!m) throw new Error('Invalid profile photo data');
   const ext=m[1]==='jpg'?'jpg':m[1];
   fs.mkdirSync('data/photos',{recursive:true});
