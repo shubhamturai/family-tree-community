@@ -36,10 +36,10 @@ if(proposal.operation==='ADD_PERSON'){
 } else if(proposal.operation==='UPDATE_PERSON'){
   const x=proposal.payload||{}, q=d.persons.find(z=>z.id===x.personId);
   if(!q||!validId(x.personId)||q.recordStatus==='deleted') throw new Error('Unknown or archived person ID');
-  for(const k of ['firstName','middleName','familyName','displayName','nickname','maidenName','gender','dateOfBirth','dateOfDeath','birthPlace','birthRegion','birthCountry','deathPlace','currentLocation','occupation','notes','maritalStatus','isMarried','photoDataUrl'])
+  for(const k of ['firstName','middleName','familyName','displayName','nickname','maidenName','gender','dateOfBirth','dateOfDeath','birthPlace','birthRegion','birthCountry','deathPlace','currentLocation','occupation','notes','maritalStatus','photoDataUrl'])
     if(k in x) q[k]=clean(x[k]);
   if(q.dateOfDeath&&q.dateOfBirth&&q.dateOfDeath<q.dateOfBirth) throw new Error('Death date cannot precede birth date');
-  q.lifeStatus=q.dateOfDeath?'deceased':clean(x.lifeStatus)||q.lifeStatus||'unknown';
+  q.lifeStatus=q.dateOfDeath?'deceased':clean(x.lifeStatus)||q.lifeStatus||'unknown'; if('isMarried' in x) q.isMarried=Boolean(x.isMarried); else if('maritalStatus' in x) q.isMarried=q.maritalStatus==='married';
 
 } else if(proposal.operation==='DELETE_PERSON'){
   const x=proposal.payload||{}, q=d.persons.find(z=>z.id===x.personId);
