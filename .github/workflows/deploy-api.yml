@@ -81,6 +81,13 @@ jobs:
           cat /tmp/admin-check-response
           echo
 
+          echo "=== API GitHub write permission ==="
+          STATUS="$(curl --silent --show-error --output /tmp/github-check-response --write-out "%{http_code}"             -H "Authorization: Bearer $ADMIN_PASSWORD"             https://family-tree-community.shubham-turai.workers.dev/admin/github-check)"
+          test "$STATUS" = "200"
+          cat /tmp/github-check-response
+          echo
+          grep -q '"push":true' /tmp/github-check-response
+
           echo "=== API D1 request validation ==="
           STATUS="$(curl --silent --show-error --output /tmp/request-response --write-out "%{http_code}"             -X POST             -H "Content-Type: application/json"             --data "{}"             https://family-tree-community.shubham-turai.workers.dev/requests)"
           test "$STATUS" = "400"
