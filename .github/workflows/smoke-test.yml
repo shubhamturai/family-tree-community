@@ -44,7 +44,7 @@ jobs:
             });
             if(adminCheck.status!==401) throw new Error("Same-origin admin route failed: "+JSON.stringify(adminCheck));
             const cfg=await page.evaluate(async()=>await (await fetch("/data/config.json?smoke="+Date.now())).json());
-            if(String(cfg.apiBase||"").replace(/\/$/,"")!==location.origin) throw new Error("API is not same-origin: "+JSON.stringify(cfg));
+            if(String(cfg.apiBase||"").replace(/\/$/,"")!==new URL(window.location.href).origin) throw new Error("API is not same-origin: "+JSON.stringify(cfg));
             const requestCheck=await page.evaluate(async()=>{const r=await fetch("/requests",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});return {status:r.status,text:await r.text()}});
             if(requestCheck.status!==400) throw new Error("Same-origin request API failed: "+JSON.stringify(requestCheck));
 
