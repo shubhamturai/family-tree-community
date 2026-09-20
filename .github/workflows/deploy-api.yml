@@ -116,27 +116,6 @@ jobs:
           ID=$(cat /tmp/smoke-request-id)
           npx wrangler d1 execute family-tree-community-db --remote --command "SELECT id,status,source FROM requests WHERE id='$ID';"
           npx wrangler d1 execute family-tree-community-db --remote --command "DELETE FROM requests WHERE id='$ID';"
-        env:
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-        run: |
-          set -euo pipefail
-          test -n "$ADMIN_PASSWORD"
-          echo "=== Authenticated pending request queue ==="
-          curl --fail-with-body --silent --show-error --retry 5 --retry-delay 2 \
-            -H "Authorization: Bearer $ADMIN_PASSWORD" \
-            "https://family-tree-community.shubham-turai.workers.dev/requests?status=pending" \
-            -o /tmp/pending-requests.json
-          python3 - <<'PY'
-          import json
-          with open('/tmp/pending-requests.json') as f:
-              body=json.load(f)
-          requests=body.get('requests')
-          if not isinstance(requests,list):
-              raise SystemExit('Invalid request queue response')
-          print(f"Pending community requests: {len(requests)}")
-          for r in requests[:10]:
-              print(f"- {r.get('id')} | {r.get('status')} | {r.get('createdAt', r.get('created_at',''))}")
-          PY
       - name: Confirm deployed Worker secret names
         working-directory: backend
         run: |
