@@ -54,7 +54,8 @@ jobs:
           echo
 
           echo "=== Worker-hosted UI ==="
-          curl --fail-with-body --silent --show-error             https://family-tree-community.shubham-turai.workers.dev/             | grep -q "Family Graph"
+          curl --fail-with-body --silent --show-error --output /tmp/worker-index.html https://family-tree-community.shubham-turai.workers.dev/
+          grep -q "Family Graph" /tmp/worker-index.html
 
           echo "=== Worker-hosted config ==="
           curl --fail-with-body --silent --show-error             https://family-tree-community.shubham-turai.workers.dev/data/config.json             | grep -q "family-tree-community.shubham-turai.workers.dev"
