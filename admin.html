@@ -75,7 +75,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle">Add person</h2><button id="modalClose" class="btn small">Close</button></div><div id="modalBody" class="modal-body"></div><div class="modal-foot"><button id="modalCancel" class="btn">Cancel</button><button id="modalSave" class="btn primary">Save</button></div></div></div>
 <script>
 const OWNER="shubhamturai",REPO="family-tree-community",PATH="data/family.json",BRANCH="main",AUTH_KEY="familyGraphAdminAuth";
-let token="",adminPassword="",data=null,fileSha="",cy=null,selected=null,layout="tree",pending=[],reviewIssue=null;
+let token="",adminPassword=sessionStorage.getItem("familyGraphAdminSession")||"",data=null,fileSha="",cy=null,selected=null,layout="tree",pending=[],reviewIssue=null;
 const $=id=>document.getElementById(id),person=id=>data&&data.persons.find(p=>p.id===id),name=p=>p&&((p.displayName)||[p.firstName,p.middleName,p.familyName].filter(Boolean).join(" ")),alive=p=>p&&p.recordStatus!=="deleted";
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
 function fmt(s){if(!s)return "";let p=String(s).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:s}
@@ -105,6 +105,16 @@ async function unlock(){
     status("Unlocked. Now connect GitHub.");
     $("tokenBox").classList.remove("hidden");
   }catch(e){adminPassword="";sessionStorage.removeItem("familyGraphAdminSession");status("Admin authentication failed: "+e.message,true)}
+}
+async function restoreAdminSession(){
+  if(!adminPassword)return;
+  try{
+    await loadApiConfig();
+    if(!apiBase)throw Error("Request service is not configured.");
+    const r=await fetch(apiBase+"/admin/check",{headers:{"Authorization":"Bearer "+adminPassword}});
+    if(!r.ok)throw Error("Admin session expired.");
+    status("Admin session restored. Connect GitHub to edit.");
+  }catch(e){adminPassword="";sessionStorage.removeItem("familyGraphAdminSession");status("Admin session expired. Unlock again to review requests.",true)}
 }
 async function connect(){token=$("token").value.trim();if(!token)return;$("tokenStatus").textContent="Connecting…";try{await api("/repos/"+OWNER+"/"+REPO);await loadData();await loadRequests();chip("Connected",true);$("tokenStatus").textContent="Connected. Direct editing is enabled.";$("tokenStatus").className="status ok"}catch(e){token="";$("tokenStatus").textContent="Failed: "+e.message;$("tokenStatus").className="status danger";chip("Locked",false)}}
 async function loadData(){let f=await api("/repos/"+OWNER+"/"+REPO+"/contents/"+PATH+"?ref="+BRANCH);fileSha=f.sha;data=JSON.parse(un64(f.content));data.persons=data.persons||[];data.relationships=data.relationships||{};data.relationships.parentChild=data.relationships.parentChild||[];data.relationships.spouses=data.relationships.spouses||[];draw();if(selected)select(selected.id)}
@@ -156,6 +166,7 @@ function review(n){
     "Approve","Reject");
 }
 $("login").onclick=unlock;$("connect").onclick=connect;$("refresh").onclick=()=>token&&loadData().then(loadRequests);$("lock").onclick=()=>{token="";adminPassword="";data=null;cy?.destroy();$("tokenBox").classList.add("hidden");$("editor").classList.add("hidden");$("empty").classList.remove("hidden");chip("Locked",false)};$("treeMode").onclick=()=>{layout="tree";draw($("search").value)};$("networkMode").onclick=()=>{layout="network";draw($("search").value)};$("fit").onclick=()=>cy?.fit(undefined,80);$("search").oninput=e=>draw(e.target.value);$("clearSearch").onclick=()=>{$("search").value="";draw()};$("addPerson").onclick=addPersonModal;$("childBtn").onclick=()=>relationshipModal("child");$("parentBtn").onclick=()=>relationshipModal("parent");$("spouseBtn").onclick=spouseModal;$("focusBtn").onclick=()=>focus(selected.id);$("save").onclick=saveSelected;$("archive").onclick=archive;$("restore").onclick=restore;$("editTab").onclick=()=>{$("editPane").classList.remove("hidden");$("reviewPane").classList.add("hidden");$("editTab").classList.add("active");$("reviewTab").classList.remove("active")};$("reviewTab").onclick=()=>{$("editPane").classList.add("hidden");$("reviewPane").classList.remove("hidden");$("reviewTab").classList.add("active");$("editTab").classList.remove("active");loadRequests()};$("refreshRequests").onclick=loadRequests;$("modalClose").onclick=closeModal;
+restoreAdminSession();
 </script>
 </body>
 </html>
