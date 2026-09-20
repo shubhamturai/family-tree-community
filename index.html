@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><script>(function(){if(location.hostname==="shubhamturai.github.io"){var p=location.pathname.replace(/^\/family-tree-community/,"")||"/";location.replace("https://family-tree-community.shubham-turai.workers.dev"+p+location.search+location.hash)}})();</script>
+<head><script>(function(){if(location.hostname==="shubhamturai.github.io"){var p=location.pathname.replace(/^\/family-tree-community/,"")||"/";location.replace("https://family-tree-community-api-shubham-2026.pages.dev"+p+location.search+location.hash)}})();</script>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Family Graph</title>
 <script src="https://unpkg.com/cytoscape@3.33.1/dist/cytoscape.min.js"></script>
@@ -239,7 +239,7 @@ function finishEditing(){
  if(adminMode){adminSave();return}
  submitRequest(false);
 }
-const REQUEST_API_FALLBACK="https://family-tree-community.shubham-turai.workers.dev";
+const REQUEST_API_FALLBACK="https://family-tree-community-api-shubham-2026.pages.dev";
 async function submitRequest(isAdmin=false){
   if(!changes.length){alert("No changes to submit.");return}
   let proposal;
