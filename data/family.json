@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "lastUpdated": "2026-09-20T15:55:10.341Z",
+  "lastUpdated": "2026-09-20T16:14:04.746Z",
   "persons": [
     {
       "id": "P000001",
@@ -66,23 +66,25 @@
     },
     {
       "id": "P000004",
-      "firstName": "Sunita",
-      "middleName": null,
+      "firstName": "Sunitha",
+      "middleName": "",
       "familyName": "Reddy",
-      "displayName": "Sunita Reddy",
-      "nickname": null,
-      "maidenName": null,
+      "displayName": "Sunitha Reddy",
+      "nickname": "",
+      "maidenName": "",
       "gender": "female",
       "dateOfBirth": "1974-01-19",
-      "dateOfDeath": null,
+      "dateOfDeath": "",
       "lifeStatus": "alive",
       "birthPlace": "Vijayawada",
       "birthRegion": "Andhra Pradesh",
       "birthCountry": "India",
-      "deathPlace": null,
+      "deathPlace": "",
       "currentLocation": "Hyderabad, Telangana",
       "occupation": "",
-      "notes": ""
+      "notes": "",
+      "maritalStatus": "married",
+      "isMarried": true
     },
     {
       "id": "P000005",
