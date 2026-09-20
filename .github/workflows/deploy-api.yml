@@ -43,8 +43,8 @@ jobs:
           set -euo pipefail
           SECRETS="$(npx wrangler secret list)"
           echo "$SECRETS"
-          echo "$SECRETS" | grep -q '"name": "ADMIN_PASSWORD"'
-          echo "$SECRETS" | grep -q '"name": "GITHUB_TOKEN"'
+          echo "$SECRETS" | grep -q "ADMIN_PASSWORD"
+          echo "$SECRETS" | grep -q "GITHUB_TOKEN"
 
       - name: Deploy Worker
         working-directory: backend
