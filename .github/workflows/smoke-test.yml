@@ -2,7 +2,7 @@ name: Family Graph smoke test
 
 on:
   workflow_run:
-    workflows: ["Deploy Family Graph"]
+    workflows: ["Deploy Family Graph API","Deploy Family Graph"]
     types: [completed]
 
 jobs:
@@ -20,7 +20,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser smoke test
         env:
-          BASE_URL: https://shubhamturai.github.io/family-tree-community/
+          WORKER_URL: https://family-tree-community.shubham-turai.workers.dev/
+          PAGES_URL: https://shubhamturai.github.io/family-tree-community/
         run: |
           node - <<'NODE'
           const { chromium } = require("playwright");
@@ -30,21 +31,31 @@ jobs:
             const errors=[]; const failedRequests=[];
             page.on("pageerror",e=>errors.push(String(e)));
             page.on("requestfailed",r=>failedRequests.push({url:r.url(),error:r.failure()?.errorText||"unknown"}));
-            await page.goto(process.env.BASE_URL,{waitUntil:"networkidle",timeout:60000});
-            if((await page.title())!=="Family Graph") throw new Error("Wrong public page title");
+
+            await page.goto(process.env.WORKER_URL,{waitUntil:"networkidle",timeout:60000});
+            if((await page.title())!=="Family Graph") throw new Error("Wrong Worker page title");
             await page.waitForSelector("#tree",{timeout:10000});
-            await page.waitForTimeout(1500);
-            const apiCheck=await page.evaluate(async()=>{let cfg; try{const cr=await fetch("./data/config.json?smoke="+Date.now()); cfg={configStatus:cr.status,configText:await cr.text()};}catch(e){return {stage:"config",error:String(e)}}; let parsed; try{parsed=JSON.parse(cfg.configText)}catch(e){return {stage:"config-json",configStatus:cfg.configStatus,configText:cfg.configText}}; const url=String(parsed.apiBase||"").replace(/\/$/,"")+"/requests"; try{const r=await fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=UTF-8"},body:"{}"}); return {stage:"api",url,status:r.status,type:r.type};}catch(e){return {stage:"api-fetch",url,error:String(e)}}});
-            if(apiCheck.stage!=="api" || apiCheck.status!==0 || apiCheck.type!=="opaque") throw new Error("Request API route check failed: "+JSON.stringify(apiCheck)+" failedRequests="+JSON.stringify(failedRequests));
-            const adminRouteCheck=await page.evaluate(async()=>{let cfg;try{cfg=JSON.parse(await (await fetch("./data/config.json?adminroute="+Date.now())).text())}catch(e){return {error:String(e)}};const url=String(cfg.apiBase||"").replace(/\/$/,"")+"/admin/apply";try{const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});return {status:r.status,type:r.type,text:await r.text()}}catch(e){return {error:String(e)}}});
-            if(adminRouteCheck.error || adminRouteCheck.status!==401) throw new Error("Admin API route check failed: "+JSON.stringify(adminRouteCheck));
+            await page.waitForTimeout(1000);
             if((await page.locator("#tree").innerText()).includes("Unable to load family data")) throw new Error("Family data failed to load");
+
+            const adminCheck=await page.evaluate(async()=>{
+              const r=await fetch("/admin/apply",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+              return {status:r.status,text:await r.text()};
+            });
+            if(adminCheck.status!==401) throw new Error("Same-origin admin route failed: "+JSON.stringify(adminCheck));
+
             const links=await page.locator("a").evaluateAll(xs=>xs.map(x=>x.href));
             if(links.some(x=>x.includes("/issues/new"))) throw new Error("Public page still contains a GitHub Issues redirect");
-            await page.goto(process.env.BASE_URL+"admin.html",{waitUntil:"networkidle",timeout:60000});
-            if((await page.title())!=="Family Graph — Admin Studio") throw new Error("Wrong admin page title");
+
+            await page.goto(process.env.WORKER_URL+"admin.html",{waitUntil:"networkidle",timeout:60000});
+            if((await page.title())!=="Family Graph — Admin Studio") throw new Error("Wrong Worker admin page title");
+
+            await page.goto(process.env.PAGES_URL,{waitUntil:"networkidle",timeout:60000});
+            if(!page.url().startsWith(process.env.WORKER_URL)) throw new Error("GitHub Pages did not redirect to Worker app: "+page.url());
+            if((await page.title())!=="Family Graph") throw new Error("Redirected app has wrong title");
+
             if(errors.length) throw new Error("Browser page errors: "+errors.join(" | "));
             await browser.close();
-            console.log("Family Graph smoke test passed.");
+            console.log("Family Graph end-to-end smoke test passed.");
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
