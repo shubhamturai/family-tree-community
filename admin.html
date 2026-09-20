@@ -68,7 +68,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
           <div class="card"><b>Relationships</b><div id="rels" class="rel" style="margin-top:10px"></div></div>
         </div>
       </div>
-      <div id="reviewPane" class="hidden"><div class="card"><div class="actions" style="justify-content:space-between"><b>Community requests</b><button id="refreshRequests" class="btn small">↻</button></div><div id="reviewStatus" class="status">Connect GitHub to load requests.</div></div><div id="requests"></div></div>
+      <div id="reviewPane" class="hidden"><div class="card"><div class="actions" style="justify-content:space-between"><b>Community requests</b><button id="refreshRequests" class="btn small">↻</button></div><div id="reviewStatus" class="status">Unlock admin to load requests.</div></div><div id="requests"></div></div>
     </div>
   </aside>
 </div>
@@ -104,6 +104,7 @@ async function unlock(){
     sessionStorage.setItem("familyGraphAdminSession",p);
     status("Unlocked. Now connect GitHub.");
     $("tokenBox").classList.remove("hidden");
+    await loadRequests();
   }catch(e){adminPassword="";sessionStorage.removeItem("familyGraphAdminSession");status("Admin authentication failed: "+e.message,true)}
 }
 async function restoreAdminSession(){
@@ -113,7 +114,8 @@ async function restoreAdminSession(){
     if(!apiBase)throw Error("Request service is not configured.");
     const r=await fetch(apiBase+"/admin/check",{headers:{"Authorization":"Bearer "+adminPassword}});
     if(!r.ok)throw Error("Admin session expired.");
-    status("Admin session restored. Connect GitHub to edit.");
+    status("Admin session restored. Community requests are available.");
+    await loadRequests();
   }catch(e){adminPassword="";sessionStorage.removeItem("familyGraphAdminSession");status("Admin session expired. Unlock again to review requests.",true)}
 }
 async function connect(){token=$("token").value.trim();if(!token)return;$("tokenStatus").textContent="Connecting…";try{await api("/repos/"+OWNER+"/"+REPO);await loadData();await loadRequests();chip("Connected",true);$("tokenStatus").textContent="Connected. Direct editing is enabled.";$("tokenStatus").className="status ok"}catch(e){token="";$("tokenStatus").textContent="Failed: "+e.message;$("tokenStatus").className="status danger";chip("Locked",false)}}
@@ -144,7 +146,7 @@ async function loadRequests(){
     pending=Array.isArray(xs.requests)?xs.requests:[];
     $("count").textContent=pending.length?"("+pending.length+")":"";
     $("reviewStatus").textContent=pending.length+ " pending request(s).";
-    $("requests").innerHTML=pending.length?pending.map(x=>'<div class="issue"><h4>'+esc(x.id)+' · '+esc(x.title||"Family graph request")+'</h4><p>'+esc(x.createdAt||"")+'</p><p>Source: <b>'+esc(x.source||"public-web")+'</b></p><pre>'+esc(JSON.stringify(x.proposal||{},null,2))+'</pre><div class="row"><button class="btn small" onclick="review(\''+esc(x.id)+'\')">Review</button></div></div>').join(""):'<div class="card muted">No pending requests.</div>';
+    $("requests").innerHTML=pending.length?pending.map(x=>'<div class="issue"><h4>'+esc(x.id)+' · '+esc(x.title||"Family graph request")+'</h4><p>'+esc(x.createdAt||x.created_at||"")+'</p><p>Source: <b>'+esc(x.source||"public-web")+'</b></p><pre>'+esc(JSON.stringify(x.proposal||{},null,2))+'</pre><div class="row"><button class="btn small" onclick="review(\''+esc(x.id)+'\')">Review</button></div></div>').join(""):'<div class="card muted">No pending requests.</div>';
   }catch(e){$("reviewStatus").textContent=e.message}
 }
 function review(n){
