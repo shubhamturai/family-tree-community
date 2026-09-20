@@ -249,7 +249,8 @@ async function submitRequest(isAdmin=false){
       const r=await fetch(endpoint+"/admin/apply",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+adminPassword},body:JSON.stringify({proposal})});
       let result={};try{result=await r.json()}catch(_){}
       if(!r.ok)throw Error(result.error||("Admin save failed (HTTP "+r.status+")"));
-      draftClear();changes=[];data=deep(liveData);baseLastUpdated=liveData.lastUpdated||"";
+      draftClear();changes=[];
+      liveData=deep(result.data||liveData);data=deep(liveData);baseLastUpdated=liveData.lastUpdated||"";
       setEditMode(false);adminMode=false;adminPassword=null;sessionStorage.removeItem("familyGraphAdminSession");
       alert("Changes applied directly to the published family graph.");
       renderChanges();draw();
