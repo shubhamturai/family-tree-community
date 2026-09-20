@@ -265,7 +265,9 @@ async function submitRequest(isAdmin=false){
       renderChanges();draw();
       return;
     }
-    const r=await fetch(endpoint+"/requests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({proposal,source:"public-web"})});\n    let result={};try{result=await r.json()}catch(_){}\n    if(!r.ok)throw Error(result.error||("Request submission failed (HTTP "+r.status+")"));
+    const r=await fetch(endpoint+"/requests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({proposal,source:"public-web"})});
+    let result={};try{result=await r.json()}catch(_){}
+    if(!r.ok)throw Error(result.error||("Request submission failed (HTTP "+r.status+")"));
     draftClear();changes=[];setEditMode(false);
     alert("Request submitted successfully. It is now pending administrator review.");
     renderChanges();
