@@ -66,6 +66,14 @@ jobs:
           cat /tmp/admin-response
           echo
 
+          echo "=== API authenticated admin check ==="
+          STATUS="\$(curl --silent --show-error --output /tmp/admin-check-response --write-out "%{http_code}" \\
+            -H "Authorization: Bearer $ADMIN_PASSWORD" \\
+            https://family-tree-community.shubham-turai.workers.dev/admin/check)"
+          test "$STATUS" = "200"
+          cat /tmp/admin-check-response
+          echo
+
           echo "=== API D1 request validation ==="
           STATUS="$(curl --silent --show-error --output /tmp/request-response --write-out "%{http_code}"             -X POST             -H "Content-Type: application/json"             --data "{}"             https://family-tree-community.shubham-turai.workers.dev/requests)"
           test "$STATUS" = "400"
