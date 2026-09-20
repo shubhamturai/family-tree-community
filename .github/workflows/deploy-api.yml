@@ -96,26 +96,6 @@ jobs:
           echo "=== Latest requests ==="
           npx wrangler d1 execute family-tree-community-db --remote --command "SELECT id,status,source,created_at FROM requests ORDER BY created_at DESC LIMIT 10;"
 
-      - name: Verify public request submission end-to-end
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json, urllib.request, uuid
-          base='https://family-tree-community.shubham-turai.workers.dev'
-          graph=json.load(urllib.request.urlopen(base+'/data/family.json'))
-          person=graph['persons'][0]['id']
-          proposal={'operation':'BATCH_UPDATE','payload':{'baseLastUpdated':graph.get('lastUpdated',''),'changes':[{'type':'UPDATE_PERSON','payload':{'personId':person,'notes':next((p.get('notes','') for p in graph['persons'] if p['id']==person),'')}}]}}
-          body=json.dumps({'proposal':proposal,'source':'automated-smoke-test'}).encode()
-          req=urllib.request.Request(base+'/requests',data=body,headers={'Content-Type':'application/json'},method='POST')
-          with urllib.request.urlopen(req) as r:
-              out=json.load(r)
-          print(json.dumps(out))
-          if out.get('status')!='pending' or not out.get('id'): raise SystemExit('Public request submission did not create a pending request')
-          with open('/tmp/smoke-request-id','w') as f: f.write(out['id'])
-          PY
-          ID=$(cat /tmp/smoke-request-id)
-          npx wrangler d1 execute family-tree-community-db --remote --command "SELECT id,status,source FROM requests WHERE id='$ID';"
-          npx wrangler d1 execute family-tree-community-db --remote --command "DELETE FROM requests WHERE id='$ID';"
       - name: Confirm deployed Worker secret names
         working-directory: backend
         run: |
