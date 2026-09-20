@@ -89,7 +89,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 
 <script>
 const REPO="shubhamturai/family-tree-community",DRAFT_KEY="familyGraphDraftV5",AUTH_KEY="familyGraphAdminAuth";
-let data=null,liveData=null,cy=null,layoutMode="tree",selectedId=null,editing=false,adminMode=false,adminPassword=null,baseLastUpdated="",changes=[];
+let data=null,liveData=null,cy=null,layoutMode="tree",selectedId=null,editing=false,adminMode=false,adminPassword=sessionStorage.getItem("familyGraphAdminSession")||null,baseLastUpdated="",changes=[];
 const $=id=>document.getElementById(id),byId=id=>data?.persons.find(p=>p.id===id),active=p=>p&&p.recordStatus!=="deleted",name=p=>p&&(p.displayName||[p.firstName,p.middleName,p.familyName].filter(Boolean).join(" "));
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
 function deep(v){return JSON.parse(JSON.stringify(v))}
@@ -227,6 +227,7 @@ async function unlockAdmin(){
   let hash=btoa(String.fromCharCode(...new Uint8Array(bits)));
   if(hash!==a.hash){alert("Incorrect admin password.");return}
   adminPassword=p;
+  sessionStorage.setItem("familyGraphAdminSession",p);
   adminMode=true;
   setEditMode(true);
   $("modeChip").textContent="Admin edit";
@@ -259,7 +260,7 @@ async function submitRequest(isAdmin=false){
       let result={};try{result=await r.json()}catch(_){}
       if(!r.ok)throw Error(result.error||("Admin save failed (HTTP "+r.status+")"));
       draftClear();changes=[];data=deep(liveData);baseLastUpdated=liveData.lastUpdated||"";
-      setEditMode(false);adminMode=false;adminPassword=null;
+      setEditMode(false);adminMode=false;adminPassword=null;sessionStorage.removeItem("familyGraphAdminSession");
       alert("Changes applied directly to the published family graph.");
       renderChanges();draw();
       return;
