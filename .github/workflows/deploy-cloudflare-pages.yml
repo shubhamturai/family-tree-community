@@ -8,7 +8,7 @@ on:
       - "admin.html"
       - "data/**"
       - "_worker.js"
-      - "wrangler.pages.toml"
+      - "wrangler.toml"
       - ".github/workflows/deploy-cloudflare-pages.yml"
   workflow_dispatch:
 
