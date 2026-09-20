@@ -209,30 +209,20 @@ async function unlockAdmin(){
   let p=prompt("Enter admin password:");
   if(!p)return;
   if(p.length<10){alert("Admin password must be at least 10 characters.");return}
-  let a=JSON.parse(localStorage.getItem(AUTH_KEY)||"null");
-  if(!a){
-    let confirmPassword=prompt("The admin password record is missing in this browser. Re-enter the same password to restore the local admin lock:");
-    if(confirmPassword!==p){alert("Passwords do not match.");return}
-    let salt=new Uint8Array(16);crypto.getRandomValues(salt);
-    let k0=await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveBits"]);
-    let bits0=await crypto.subtle.deriveBits({name:"PBKDF2",salt:salt,iterations:150000,hash:"SHA-256"},k0,256);
-    let hash0=btoa(String.fromCharCode(...new Uint8Array(bits0)));
-    localStorage.setItem(AUTH_KEY,JSON.stringify({salt:btoa(String.fromCharCode(...salt)),hash:hash0,version:1}));
-    a={salt:btoa(String.fromCharCode(...salt)),hash:hash0,version:1};
-    alert("Admin password restored on this browser.");
-  }
-  let salt=Uint8Array.from(atob(a.salt),c=>c.charCodeAt(0));
-  let k=await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveBits"]);
-  let bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:salt,iterations:150000,hash:"SHA-256"},k,256);
-  let hash=btoa(String.fromCharCode(...new Uint8Array(bits)));
-  if(hash!==a.hash){alert("Incorrect admin password.");return}
-  adminPassword=p;
-  sessionStorage.setItem("familyGraphAdminSession",p);
-  adminMode=true;
-  setEditMode(true);
-  $("modeChip").textContent="Admin edit";
-  $("modeChip").className="chip admin";
-  $("finishBtn").textContent="Save changes";$("submitChanges").textContent="Save changes";alert("Admin editing enabled. Admin saves are applied directly by the administrator.");
+  try{
+    let cfg={};let cr=await fetch("./data/config.json?"+Date.now());if(cr.ok)cfg=await cr.json();
+    const endpoint=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"");
+    const r=await fetch(endpoint+"/admin/check",{headers:{"Authorization":"Bearer "+p}});
+    if(!r.ok){let j={};try{j=await r.json()}catch(_){}throw Error(j.error||"Incorrect admin password.")}
+    adminPassword=p;
+    sessionStorage.setItem("familyGraphAdminSession",p);
+    adminMode=true;
+    setEditMode(true);
+    $("modeChip").textContent="Admin edit";
+    $("modeChip").className="chip admin";
+    $("finishBtn").textContent="Save changes";$("submitChanges").textContent="Save changes";
+    alert("Admin editing enabled. Admin saves are applied directly by the administrator.");
+  }catch(e){adminPassword=null;sessionStorage.removeItem("familyGraphAdminSession");alert("Admin authentication failed: "+(e.message||e))}
 }
 function finishEditing(){
  if(!changes.length){setEditMode(false);return}
