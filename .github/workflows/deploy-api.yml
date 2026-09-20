@@ -44,3 +44,17 @@ jobs:
           echo
           cat /tmp/health-primary 2>/dev/null || true
           echo
+          echo "=== CORS preflight /admin/apply ==="
+          curl --silent --show-error --max-time 20 -i -X OPTIONS \
+            -H "Origin: https://shubhamturai.github.io" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: authorization,content-type" \
+            https://family-tree-community.shubham-turai.workers.dev/admin/apply || true
+          echo
+          echo "=== Origin POST /admin/apply (unauthenticated) ==="
+          curl --silent --show-error --max-time 20 -i -X POST \
+            -H "Origin: https://shubhamturai.github.io" \
+            -H "Content-Type: application/json" \
+            --data "{}" \
+            https://family-tree-community.shubham-turai.workers.dev/admin/apply || true
+          echo
