@@ -13,4 +13,7 @@ GITHUB_OWNER = "shubhamturai"
 GITHUB_REPO = "family-tree-community"
 GITHUB_PATH = "data/family.json"
 GITHUB_BRANCH = "main"
-\n[assets]\ndirectory = "./public"\nbinding = "ASSETS"\n
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
