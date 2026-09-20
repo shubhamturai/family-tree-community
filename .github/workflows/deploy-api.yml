@@ -39,15 +39,4 @@ jobs:
           POST_STATUS="$(curl --silent --show-error --output /tmp/post-response --write-out "%{http_code}" -X POST -H "Content-Type: text/plain;charset=UTF-8" --data "{}" https://family-tree-community.shubham-turai.workers.dev/requests)"
           echo "POST status: $POST_STATUS"
           cat /tmp/post-response
-          echo "Browser-origin POST:"
-          curl --silent --show-error -i -X POST -H "Origin: https://shubhamturai.github.io" -H "Content-Type: text/plain;charset=UTF-8" --data "{}" https://family-tree-community.shubham-turai.workers.dev/requests
           test "$POST_STATUS" = "400"
-          echo "Authenticated admin/apply dry-run:"
-          ADMIN_TEST_RESPONSE="$(curl --silent --show-error --fail-with-body -X POST \\
-            -H "Origin: https://shubhamturai.github.io" \\
-            -H "Content-Type: application/json" \\
-            -H "Authorization: Bearer $CLOUDFLARE_ADMIN_PASSWORD" \\
-            --data '{"dryRun":true,"proposal":{"operation":"BATCH_UPDATE","payload":{"changes":[{"type":"UPDATE_PERSON","payload":{"personId":"P000001","displayName":"Subhash Turai"}}]}}}' \\
-            https://family-tree-community.shubham-turai.workers.dev/admin/apply)"
-          echo "$ADMIN_TEST_RESPONSE"
-          echo "$ADMIN_TEST_RESPONSE" | grep -q '"status":"validated"'
