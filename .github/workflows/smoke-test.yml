@@ -20,7 +20,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser smoke test
         env:
-          APP_URL: https://family-tree-community-api-shubham-2026.pages.dev/
+          APP_URL: https://family-tree-community.shubham-turai.workers.dev/
           PAGES_URL: https://shubhamturai.github.io/family-tree-community/
         run: |
           node - <<'NODE'
