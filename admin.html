@@ -91,7 +91,21 @@ async function api(path,opt){let r=await fetch("https://api.github.com"+path,Obj
 function b64(s){let b=new TextEncoder().encode(s),o="";for(let i=0;i<b.length;i+=0x8000)o+=String.fromCharCode(...b.subarray(i,i+0x8000));return btoa(o)}
 function un64(s){let b=Uint8Array.from(atob(s.replace(/\n/g,"")),c=>c.charCodeAt(0));return new TextDecoder().decode(b)}
 async function hash(p,s){let k=await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveBits"]),x=await crypto.subtle.deriveBits({name:"PBKDF2",salt:s,iterations:150000,hash:"SHA-256"},k,256);return btoa(String.fromCharCode(...new Uint8Array(x)))}
-async function unlock(){let p=$("password").value;adminPassword=p;if(p.length<10){status("Use at least 10 characters.",true);return}let a=JSON.parse(localStorage.getItem(AUTH_KEY)||"null");if(!a){let s=new Uint8Array(16);crypto.getRandomValues(s);localStorage.setItem(AUTH_KEY,JSON.stringify({salt:btoa(String.fromCharCode(...s)),hash:await hash(p,s)}));status("Password created. Now connect GitHub.")}else if(await hash(p,Uint8Array.from(atob(a.salt),c=>c.charCodeAt(0)))===a.hash){status("Unlocked. Now connect GitHub.")}else{adminPassword="";status("Incorrect password.",true);return}$("tokenBox").classList.remove("hidden")}
+async function unlock(){
+  let p=$("password").value;
+  if(p.length<10){status("Use at least 10 characters.",true);return}
+  try{
+    await loadApiConfig();
+    if(!apiBase)throw Error("Request service is not configured.");
+    let r=await fetch(apiBase+"/admin/check",{headers:{"Authorization":"Bearer "+p}});
+    let j=await r.json().catch(()=>({}));
+    if(!r.ok)throw Error(j.error||"Incorrect admin password.");
+    adminPassword=p;
+    sessionStorage.setItem("familyGraphAdminSession",p);
+    status("Unlocked. Now connect GitHub.");
+    $("tokenBox").classList.remove("hidden");
+  }catch(e){adminPassword="";sessionStorage.removeItem("familyGraphAdminSession");status("Admin authentication failed: "+e.message,true)}
+}
 async function connect(){token=$("token").value.trim();if(!token)return;$("tokenStatus").textContent="Connecting…";try{await api("/repos/"+OWNER+"/"+REPO);await loadData();await loadRequests();chip("Connected",true);$("tokenStatus").textContent="Connected. Direct editing is enabled.";$("tokenStatus").className="status ok"}catch(e){token="";$("tokenStatus").textContent="Failed: "+e.message;$("tokenStatus").className="status danger";chip("Locked",false)}}
 async function loadData(){let f=await api("/repos/"+OWNER+"/"+REPO+"/contents/"+PATH+"?ref="+BRANCH);fileSha=f.sha;data=JSON.parse(un64(f.content));data.persons=data.persons||[];data.relationships=data.relationships||{};data.relationships.parentChild=data.relationships.parentChild||[];data.relationships.spouses=data.relationships.spouses||[];draw();if(selected)select(selected.id)}
 async function save(message){data.lastUpdated=new Date().toISOString();let r=await api("/repos/"+OWNER+"/"+REPO+"/contents/"+PATH,{method:"PUT",body:JSON.stringify({message:message,content:b64(JSON.stringify(data,null,2)+"\n"),sha:fileSha,branch:BRANCH})});fileSha=r.content.sha;draw();if(selected)select(selected.id);chip("Saved",true);setTimeout(()=>chip("Connected",true),1200)}
