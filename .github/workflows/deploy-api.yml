@@ -91,7 +91,7 @@ jobs:
         working-directory: backend
         run: |
           set -euo pipefail
-          echo "=== D1 request queue ==="
+          echo "=== D1 request queue (diagnostic) ==="
           npx wrangler d1 execute family-tree-community-db --remote --command "SELECT status, COUNT(*) AS count FROM requests GROUP BY status ORDER BY status;"
           echo "=== Latest requests ==="
           npx wrangler d1 execute family-tree-community-db --remote --command "SELECT id,status,source,created_at FROM requests ORDER BY created_at DESC LIMIT 10;"
