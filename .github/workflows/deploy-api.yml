@@ -37,6 +37,15 @@ jobs:
           test -s public/data/family.json
           test -s public/data/config.json
 
+      - name: Verify Worker secrets are configured
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          SECRETS="$(npx wrangler secret list)"
+          echo "$SECRETS"
+          echo "$SECRETS" | grep -q '"name": "ADMIN_PASSWORD"'
+          echo "$SECRETS" | grep -q '"name": "GITHUB_TOKEN"'
+
       - name: Deploy Worker
         working-directory: backend
         run: npx wrangler deploy
