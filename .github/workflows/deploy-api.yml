@@ -71,3 +71,21 @@ jobs:
           test "$STATUS" = "400"
           cat /tmp/request-response
           echo
+
+
+      - name: Verify authenticated administrator path
+        env:
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$ADMIN_PASSWORD"
+          BODY='{"proposal":{"operation":"BATCH_UPDATE","payload":{"changes":[{"type":"UPDATE_PERSON","payload":{"personId":"P000001","notes":""}}]}} ,"dryRun":true}'
+          STATUS="$(curl --silent --show-error --output /tmp/admin-auth-response --write-out "%{http_code}" \\
+            -X POST \\
+            -H "Content-Type: application/json" \\
+            -H "Authorization: Bearer $ADMIN_PASSWORD" \\
+            --data "$BODY" \\
+            https://family-tree-community.shubham-turai.workers.dev/admin/apply)"
+          test "$STATUS" = "200"
+          cat /tmp/admin-auth-response
+          echo
