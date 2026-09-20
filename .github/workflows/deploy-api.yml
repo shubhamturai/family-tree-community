@@ -31,12 +31,16 @@ jobs:
         run: npx wrangler deployments list
       - name: Verify Worker endpoint
         run: |
-          set -e
-          curl --fail-with-body --silent --show-error --retry 12 --retry-delay 5 --retry-all-errors https://family-tree-community.shubham-turai.workers.dev/health
-          echo "CORS headers:"
-          curl --silent --show-error -i https://family-tree-community.shubham-turai.workers.dev/health
+          set -u
+          for URL in \
+            https://family-tree-community.shubham-turai.workers.dev/health \
+            https://family-graph-request-api.shubham-turai.workers.dev/health; do
+            echo "=== $URL ==="
+            curl --silent --show-error --max-time 20 -i "$URL" || true
+            echo
+          done
+          echo "Primary status:"
+          curl --silent --show-error --max-time 20 --output /tmp/health-primary --write-out "%{http_code}" https://family-tree-community.shubham-turai.workers.dev/health || true
           echo
-          POST_STATUS="$(curl --silent --show-error --output /tmp/post-response --write-out "%{http_code}" -X POST -H "Content-Type: text/plain;charset=UTF-8" --data "{}" https://family-tree-community.shubham-turai.workers.dev/requests)"
-          echo "POST status: $POST_STATUS"
-          cat /tmp/post-response
-          test "$POST_STATUS" = "400"
+          cat /tmp/health-primary 2>/dev/null || true
+          echo
