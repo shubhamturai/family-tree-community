@@ -44,7 +44,7 @@ jobs:
 
       - name: Deploy Pages app
         run: |
-          npx wrangler pages deploy cloudflare-pages-dist             --project-name family-tree-community-api-shubham-2026             --branch main             --config wrangler.pages.toml
+          npx wrangler pages deploy cloudflare-pages-dist             --project-name family-tree-community-api-shubham-2026             --branch main
 
       - name: Verify Pages app
         run: |
