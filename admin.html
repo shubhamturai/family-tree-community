@@ -165,6 +165,7 @@ async function loadRequests(){
     pending=Array.isArray(xs.requests)?xs.requests:[];
     $("count").textContent=pending.length?"("+pending.length+")":"";
     $("reviewStatus").textContent=pending.length+ " pending request(s).";
+    if(pending.length){$("editPane").classList.add("hidden");$("reviewPane").classList.remove("hidden");$("reviewTab").classList.add("active");$("editTab").classList.remove("active")}
     $("requests").innerHTML=pending.length?pending.map(x=>'<div class="issue"><h4>'+esc(x.id)+' · '+esc(x.title||"Family graph request")+'</h4><p>'+esc(x.createdAt||x.created_at||"")+'</p><p>Source: <b>'+esc(x.source||"public-web")+'</b></p><pre>'+esc(JSON.stringify(x.proposal||{},null,2))+'</pre><div class="row"><button class="btn small" onclick="review(\''+esc(x.id)+'\')">Review</button></div></div>').join(""):'<div class="card muted">No pending requests.</div>';
   }catch(e){$("reviewStatus").textContent=e.message}
 }
