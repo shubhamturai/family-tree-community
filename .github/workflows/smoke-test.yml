@@ -53,6 +53,11 @@ jobs:
 
             await page.goto(process.env.APP_URL+"admin.html",{waitUntil:"networkidle",timeout:60000});
             if((await page.title())!=="Family Graph — Admin Studio") throw new Error("Wrong Worker admin page title");
+            await page.waitForSelector("#reviewTab",{timeout:10000});
+            if(!(await page.locator("#reviewTab").isVisible())) throw new Error("Admin Requests tab is not visible");
+            if(!(await page.locator("#reviewPane").count())) throw new Error("Admin Requests pane is missing");
+            if(!(await page.locator("#togglePassword").count())) throw new Error("Admin password visibility control is missing");
+            if((await page.locator("body").innerText()).includes("async async function")) throw new Error("Broken admin script marker detected");
 
             await page.goto(process.env.PAGES_URL,{waitUntil:"networkidle",timeout:60000});
             if(!page.url().startsWith(process.env.APP_URL)) throw new Error("GitHub Pages did not redirect to Cloudflare app: "+page.url());
