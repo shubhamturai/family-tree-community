@@ -260,7 +260,10 @@ async function submitRequest(isAdmin=false){
     let result={};try{result=await r.json()}catch(_){}
     if(!r.ok)throw Error(result.error||("Request submission failed (HTTP "+r.status+")"));
     draftClear();changes=[];setEditMode(false);
-    alert("Request submitted successfully. It is now pending administrator review.");
+    // A public submission is pending only; never leave the submitted draft rendered as published data.
+    try{const fresh=await fetch("./data/family.json?"+Date.now());if(fresh.ok){liveData=deep(await fresh.json());data=deep(liveData);baseLastUpdated=liveData.lastUpdated||"";selectedId=null;draw();}}
+    catch(_){/* Keep the canonical in-memory snapshot if the refresh fails. */}
+    alert("Request submitted successfully. It is now pending administrator review. The published family graph is unchanged until an administrator approves it.");
     renderChanges();
   }catch(e){
     alert((isAdmin?"Could not apply the administrator changes. ":"Could not submit the change request. Please try again. ")+(e?.message||"Network error"));
