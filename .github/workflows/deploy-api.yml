@@ -7,6 +7,7 @@ on:
       - "backend/**"
       - "index.html"
       - "admin.html"
+      - "tree-layout.js"
       - "data/**"
       - ".github/workflows/deploy-api.yml"
   workflow_dispatch:
@@ -38,9 +39,11 @@ jobs:
           mkdir -p public/data
           cp ../index.html public/index.html
           cp ../admin.html public/admin.html
+          cp ../tree-layout.js public/tree-layout.js
           cp ../data/* public/data/
           test -s public/index.html
           test -s public/admin.html
+          test -s public/tree-layout.js
           test -s public/data/family.json
           test -s public/data/config.json
 
