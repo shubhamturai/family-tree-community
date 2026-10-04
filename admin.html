@@ -6,6 +6,7 @@
 <title>Family Graph — Admin Studio</title>
 <script src="https://unpkg.com/cytoscape@3.33.1/dist/cytoscape.min.js"></script>
 <script src="./tree-layout.js"></script>
+<script src="./canvas-handles.js"></script>
 <style>
 :root{--bg:#070b14;--panel:#0e1523;--card:#121b2b;--line:#26334a;--text:#eef3fb;--muted:#94a3b8;--brand:#7c6cf4;--cyan:#46d7ff;--green:#35d39a;--red:#ff6878}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 15% 0,#151c36 0,#070b14 40%,#050811 100%);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,sans-serif}
@@ -71,7 +72,7 @@ kbd{font:600 10px ui-monospace,Menlo,monospace;border:1px solid #ffffff44;border
     </div>
     <div id="tree"></div>
     <div id="rvBar" class="rvbar hidden"></div>
-    <div class="tip">Click a person to edit · Double-click to focus · Selected person actions are on the right</div>
+    <div class="tip">Click a person to edit · hover and click a + to add a relative · drag a + onto someone to connect · double-click to focus</div>
   </section>
   <aside class="side">
     <div class="side-inner">
@@ -162,7 +163,7 @@ function startSession(p){adminToken=p;sessionStorage.setItem("familyGraphAdminSe
 function endSession(msg,bad){
   sessionGen++;reqSeq++;stopPoll();adminToken="";token="";data=null;fileSha="";selected=null;pending=[];reqSig="";reqErr=false;reviewIssue=null;
   sessionStorage.removeItem("familyGraphAdminSession");clearTimeout(chipTimer);graph=null;listSig="";rv=null;rvBusy=false;canvasMode="edit";$("rvBar").classList.add("hidden");showReviewSide(false);
-  if(cy){cy.destroy();cy=null}
+  detachEditHandles();if(cy){cy.destroy();cy=null}
   closeModal();syncLogin();$("password").value="";$("token").value="";$("tokenBox").classList.add("hidden");$("tokenStatus").textContent="Waiting for token.";$("tokenStatus").className="status";
   $("editor").classList.add("hidden");$("empty").classList.remove("hidden");showTab("edit");
   chip("Locked",false);$("count").textContent="";$("requests").innerHTML="";$("reviewStatus").textContent="Unlock admin to load requests.";status(msg||"Locked.",bad)
@@ -214,8 +215,8 @@ function modal(title,body,saveFn,cancelFn,saveLabel="Save",cancelLabel="Cancel")
 function closeModal(){$("modal").classList.remove("open");$("modal").querySelector(".modal-box").classList.remove("wide");const b=$("modalBody");b.onchange=b.onclick=b.onmouseover=null}
 function newPersonFields(extra){return '<div class="grid2"><label>First name<input id="mFirst"></label><label>Family name<input id="mFamily"></label><label>Display name<input id="mDisplay"></label><label>Gender<select id="mGender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label><label>DOB · DD/MM/YYYY<input id="mDob" maxlength="10" placeholder="DD/MM/YYYY"></label>'+extra+'</div>'}
 function addPersonModal(){modal("Add person",newPersonFields('<label>Birth place<input id="mBirthPlace"></label>'),async()=>{try{let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim(),dob=parse($("mDob").value);if(!nm)throw Error("Name required");if($("mDob").value&&!dob)throw Error("DOB must be DD/MM/YYYY");let id=nextId();data.persons.push({id:id,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:dob,dateOfDeath:"",lifeStatus:"unknown",birthPlace:$("mBirthPlace").value.trim(),birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"});await save("Admin add "+id);closeModal();showTab("edit");select(id)}catch(e){toast(e.message,"err")}})}
-function relationshipModal(kind){let opts=data.persons.filter(alive).map(p=>'<option value="'+p.id+'">'+esc(name(p))+' · '+p.id+'</option>').join(""), title=kind==="child"?"Add child":"Add parent";let body='<p class="muted">'+title+' for <b>'+esc(name(selected))+'</b>.</p><label>Use existing person<select id="mExisting"><option value="__new">＋ Create new person</option>'+opts+'</select></label><div id="mNew" style="margin-top:10px">'+newPersonFields("")+'</div><div class="grid2" style="margin-top:10px"><label>Role<select id="mRole"><option value="parent">Parent</option><option value="father">Father</option><option value="mother">Mother</option><option value="adoptive_father">Adoptive father</option><option value="adoptive_mother">Adoptive mother</option><option value="step_father">Step-father</option><option value="step_mother">Step-mother</option></select></label><label>Order<input id="mOrder" type="number" min="1" value="1"></label></div>';modal(title,body,async()=>{try{let target=$("mExisting").value;if(target==="__new"){let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim(),dob=parse($("mDob").value);if(!nm)throw Error("Name required");if($("mDob").value&&!dob)throw Error("DOB must be DD/MM/YYYY");target=nextId();data.persons.push({id:target,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:dob,dateOfDeath:"",lifeStatus:"unknown",birthPlace:"",birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"})}if(target===selected.id)throw Error("Cannot relate a person to themselves");let parentId=kind==="child"?selected.id:target,childId=kind==="child"?target:selected.id;if(data.relationships.parentChild.some(r=>r.parentId===parentId&&r.childId===childId))throw Error("Relationship already exists");data.relationships.parentChild.push({parentId:parentId,childId:childId,role:$("mRole").value,order:Number($("mOrder").value)||1});await save("Admin add parent-child "+parentId+" → "+childId);closeModal();select(selected.id)}catch(e){toast(e.message,"err")}});$("mExisting").onchange=function(){$("mNew").style.display=this.value==="__new"?"block":"none"}}
-function spouseModal(){let opts=data.persons.filter(alive).map(p=>'<option value="'+p.id+'">'+esc(name(p))+' · '+p.id+'</option>').join(""),body='<p class="muted">Add spouse for <b>'+esc(name(selected))+'</b>.</p><label>Use existing person<select id="mExisting"><option value="__new">＋ Create new person</option>'+opts+'</select></label><div id="mNew" style="margin-top:10px">'+newPersonFields("")+'</div><div class="grid2" style="margin-top:10px"><label>Marriage date · DD/MM/YYYY<input id="mMarriage" maxlength="10" placeholder="DD/MM/YYYY"></label><label>Order<input id="mOrder" type="number" min="1" value="1"></label></div>';modal("Add spouse",body,async()=>{try{let target=$("mExisting").value;if(target==="__new"){let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim();if(!nm)throw Error("Name required");target=nextId();data.persons.push({id:target,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:"",dateOfDeath:"",lifeStatus:"unknown",birthPlace:"",birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"})}if(target===selected.id)throw Error("Cannot spouse a person with themselves");if(data.relationships.spouses.some(r=>new Set([r.personAId,r.personBId]).size===2&&[r.personAId,r.personBId].includes(selected.id)&&[r.personAId,r.personBId].includes(target)))throw Error("Spouse relationship already exists");let md=parse($("mMarriage").value);if($("mMarriage").value&&!md)throw Error("Marriage date must be DD/MM/YYYY");data.relationships.spouses.push({personAId:selected.id,personBId:target,order:Number($("mOrder").value)||1,marriageDate:md,divorceDate:""});await save("Admin add spouse "+selected.id+" ↔ "+target);closeModal();showTab("edit");select(target)}catch(e){toast(e.message,"err")}});$("mExisting").onchange=function(){$("mNew").style.display=this.value==="__new"?"block":"none"}}
+function relationshipModal(kind,pre){let opts=data.persons.filter(alive).map(p=>'<option value="'+p.id+'">'+esc(name(p))+' · '+p.id+'</option>').join(""), title=kind==="child"?"Add child":"Add parent";let body='<p class="muted">'+title+' for <b>'+esc(name(selected))+'</b>.</p><label>Use existing person<select id="mExisting"><option value="__new">＋ Create new person</option>'+opts+'</select></label><div id="mNew" style="margin-top:10px">'+newPersonFields("")+'</div><div class="grid2" style="margin-top:10px"><label>Role<select id="mRole"><option value="parent">Parent</option><option value="father">Father</option><option value="mother">Mother</option><option value="adoptive_father">Adoptive father</option><option value="adoptive_mother">Adoptive mother</option><option value="step_father">Step-father</option><option value="step_mother">Step-mother</option></select></label><label>Order<input id="mOrder" type="number" min="1" value="1"></label></div>';modal(title,body,async()=>{try{let target=$("mExisting").value;if(target==="__new"){let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim(),dob=parse($("mDob").value);if(!nm)throw Error("Name required");if($("mDob").value&&!dob)throw Error("DOB must be DD/MM/YYYY");target=nextId();data.persons.push({id:target,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:dob,dateOfDeath:"",lifeStatus:"unknown",birthPlace:"",birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"})}if(target===selected.id)throw Error("Cannot relate a person to themselves");let parentId=kind==="child"?selected.id:target,childId=kind==="child"?target:selected.id;if(data.relationships.parentChild.some(r=>r.parentId===parentId&&r.childId===childId))throw Error("Relationship already exists");data.relationships.parentChild.push({parentId:parentId,childId:childId,role:$("mRole").value,order:Number($("mOrder").value)||1});await save("Admin add parent-child "+parentId+" → "+childId);closeModal();select(selected.id)}catch(e){toast(e.message,"err")}});$("mExisting").onchange=function(){$("mNew").style.display=this.value==="__new"?"block":"none"};if(pre){$("mExisting").value=pre;$("mExisting").onchange()}}
+function spouseModal(pre){let opts=data.persons.filter(alive).map(p=>'<option value="'+p.id+'">'+esc(name(p))+' · '+p.id+'</option>').join(""),body='<p class="muted">Add spouse for <b>'+esc(name(selected))+'</b>.</p><label>Use existing person<select id="mExisting"><option value="__new">＋ Create new person</option>'+opts+'</select></label><div id="mNew" style="margin-top:10px">'+newPersonFields("")+'</div><div class="grid2" style="margin-top:10px"><label>Marriage date · DD/MM/YYYY<input id="mMarriage" maxlength="10" placeholder="DD/MM/YYYY"></label><label>Order<input id="mOrder" type="number" min="1" value="1"></label></div>';modal("Add spouse",body,async()=>{try{let target=$("mExisting").value;if(target==="__new"){let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim();if(!nm)throw Error("Name required");target=nextId();data.persons.push({id:target,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:"",dateOfDeath:"",lifeStatus:"unknown",birthPlace:"",birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"})}if(target===selected.id)throw Error("Cannot spouse a person with themselves");if(data.relationships.spouses.some(r=>new Set([r.personAId,r.personBId]).size===2&&[r.personAId,r.personBId].includes(selected.id)&&[r.personAId,r.personBId].includes(target)))throw Error("Spouse relationship already exists");let md=parse($("mMarriage").value);if($("mMarriage").value&&!md)throw Error("Marriage date must be DD/MM/YYYY");data.relationships.spouses.push({personAId:selected.id,personBId:target,order:Number($("mOrder").value)||1,marriageDate:md,divorceDate:""});await save("Admin add spouse "+selected.id+" ↔ "+target);closeModal();showTab("edit");select(target)}catch(e){toast(e.message,"err")}});$("mExisting").onchange=function(){$("mNew").style.display=this.value==="__new"?"block":"none"};if(pre){$("mExisting").value=pre;$("mExisting").onchange()}}
 function stopPoll(){if(requestPoll){clearInterval(requestPoll);requestPoll=null}}
 function showTab(n,load=true){
   const r=n==="review";
@@ -342,12 +343,15 @@ const CY_STYLE=[
   {selector:"edge.ghost.fut",style:{"width":2,"opacity":.55}},
   {selector:".dim",style:{"opacity":.18}}
 ];
+let editHandles=null;
+function detachEditHandles(){if(editHandles){editHandles.destroy();editHandles=null}}
 function makeCy(elements){
+  detachEditHandles();
   if(cy){try{cy.destroy()}catch(_){}cy=null}
   cy=cytoscape({container:$("tree"),elements,style:CY_STYLE,layout:{name:"preset"},minZoom:.04,maxZoom:1.3,wheelSensitivity:.25});
   return cy
 }
-function setCanvasHint(){const t=document.querySelector(".tip");if(!t)return;t.textContent=canvasMode==="review"?(rv?"Review mode · A accept · R reject · ← → move between changes":"Orange rings mark people with pending requests · click one to review it"):"Click a person to edit · Double-click to focus · Selected person actions are on the right";document.querySelector(".canvas").classList.toggle("reviewing",canvasMode==="review"&&!!rv)}
+function setCanvasHint(){const t=document.querySelector(".tip");if(!t)return;t.textContent=canvasMode==="review"?(rv?"Review mode · A accept · R reject · ← → move between changes":"Orange rings mark people with pending requests · click one to review it"):"Click a person to edit · hover and click a + to add a relative · drag a + onto someone to connect · double-click to focus";document.querySelector(".canvas").classList.toggle("reviewing",canvasMode==="review"&&!!rv)}
 /* Edit canvas: the editable tree (needs the GitHub token). */
 function draw(q){
   if(!data||canvasMode==="review")return;
@@ -357,7 +361,13 @@ function draw(q){
   pcs.forEach(r=>els.push({group:"edges",data:{id:"pc"+r.parentId+r.childId,source:r.parentId,target:r.childId}}));
   sps.forEach(r=>els.push({group:"edges",data:{id:"sp"+r.personAId+r.personBId,source:r.personAId,target:r.personBId},classes:"sp"}));
   makeCy(els);cy.fit(undefined,60);
-  cy.on("tap","node",e=>{showTab("edit");select(e.target.id())});cy.on("dblclick","node",e=>focus(e.target.id()))
+  cy.on("tap","node",e=>{showTab("edit");select(e.target.id())});cy.on("dblclick","node",e=>focus(e.target.id()));
+  editHandles=NodeHandles.attach(cy,{
+    handles:[{kind:"parent",side:"top",title:"Add a parent",label:"Parent"},{kind:"child",side:"bottom",title:"Add a child",label:"Child"},{kind:"spouse",side:"right",title:"Add a spouse or partner",label:"Spouse"}],
+    label:id=>name(person(id)),
+    onAdd:(kind,id)=>{select(id);kind==="spouse"?spouseModal():relationshipModal(kind)},
+    onDrop:(kind,src,tgt)=>{select(src);kind==="spouse"?spouseModal(tgt||undefined):relationshipModal(kind,tgt||undefined)}
+  })
 }
 /* Review canvas: the whole published tree, read-only, with pending requests marked on it. */
 function buildReviewCanvas(){
@@ -386,7 +396,7 @@ async function enterReviewCanvas(){
 function leaveReviewCanvas(){
   if(canvasMode!=="review")return;
   canvasMode="edit";$("rvBar").classList.add("hidden");
-  if(cy){try{cy.destroy()}catch(_){}cy=null}
+  detachEditHandles();if(cy){try{cy.destroy()}catch(_){}cy=null}
   if(data)draw($("search").value);setCanvasHint()
 }
 function cameraTo(eles,opts={}){
@@ -663,7 +673,7 @@ $("refresh").onclick=async()=>{if(token){try{await loadData()}catch(e){toast(e.m
 $("lock").onclick=()=>endSession("Locked.");
 $("treeMode").onclick=()=>{layout="tree";draw($("search").value)};$("networkMode").onclick=()=>{layout="network";draw($("search").value)};$("fit").onclick=()=>cy?.fit(undefined,80);$("search").oninput=e=>canvasMode==="review"?reviewSearch(e.target.value):draw(e.target.value);$("clearSearch").onclick=()=>{$("search").value="";canvasMode==="review"?reviewSearch(""):draw()};
 $("addPerson").onclick=()=>{if(!data){toast("Connect GitHub first to edit the tree.");return}addPersonModal()};
-$("childBtn").onclick=()=>relationshipModal("child");$("parentBtn").onclick=()=>relationshipModal("parent");$("spouseBtn").onclick=spouseModal;$("focusBtn").onclick=()=>selected&&focus(selected.id);
+$("childBtn").onclick=()=>relationshipModal("child");$("parentBtn").onclick=()=>relationshipModal("parent");$("spouseBtn").onclick=()=>spouseModal();$("focusBtn").onclick=()=>selected&&focus(selected.id);
 $("save").onclick=guarded(saveSelected);$("archive").onclick=guarded(archive);$("restore").onclick=guarded(restore);
 $("editTab").onclick=()=>showTab("edit");$("reviewTab").onclick=()=>{showTab("review");if(!adminToken)$("password").focus()};
 $("refreshRequests").onclick=loadRequests;$("modalClose").onclick=closeModal;

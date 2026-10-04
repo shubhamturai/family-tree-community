@@ -179,4 +179,25 @@ describe("editing tab", () => {
     assert.equal(await app.page.textContent("#connection"), "Saved");
     assert.deepEqual(app.errors.filter((e) => !/409/.test(e)), [], "only the deliberate 409 is logged");
   });
+
+  test("hovering a person shows + handles that open the relationship dialogs, and dragging one onto someone preselects them", async () => {
+    const center = (id) => app.page.evaluate((id) => { const n = cy.getElementById(id), p = n.renderedPosition(), r = document.getElementById("tree").getBoundingClientRect(); return { x: r.left + p.x, y: r.top + p.y }; }, id);
+    const ids = app.gh.graph.persons.map((p) => p.id), a = ids[2], b = ids[4];
+    let c = await center(a);
+    await app.page.mouse.move(c.x - 20, c.y - 5); await app.page.mouse.move(c.x, c.y, { steps: 3 }); await sleep(350);
+    assert.equal(await app.page.locator(".nh-layer.on .nh-btn").count(), 3, "parent, child and spouse handles");
+    let box = await app.page.locator('.nh-layer.on .nh-btn[data-kind="child"]').boundingBox();
+    await app.page.mouse.move(box.x + 14, box.y + 14); await app.page.mouse.down(); await app.page.mouse.up(); await sleep(400);
+    assert.match(await app.page.innerText("#modalTitle"), /Add child/);
+    await app.page.click("#modalCancel"); await sleep(200);
+    c = await center(a);
+    await app.page.mouse.move(c.x - 20, c.y - 5); await app.page.mouse.move(c.x, c.y, { steps: 3 }); await sleep(350);
+    box = await app.page.locator('.nh-layer.on .nh-btn[data-kind="spouse"]').boundingBox();
+    const t = await center(b);
+    await app.page.mouse.move(box.x + 14, box.y + 14); await app.page.mouse.down(); await app.page.mouse.move(t.x, t.y, { steps: 10 }); await app.page.mouse.up(); await sleep(400);
+    assert.match(await app.page.innerText("#modalTitle"), /Add spouse/);
+    assert.equal(await app.page.inputValue("#mExisting"), b, "the person it was dropped on is preselected");
+    await app.page.click("#modalCancel");
+    assert.deepEqual(app.errors.filter((e) => !/409/.test(e)), []);
+  });
 });

@@ -21,7 +21,8 @@ Git is the database, so every approved change is a commit: a complete, restorabl
 **Visitors**
 - Explore a clear generational tree (couples side by side, children below parents), search by name, switch to a force-directed network view, and highlight any person's direct family line.
 - Find anyone in the **Everyone** list (also the screen-reader/keyboard-friendly way to browse), works on phones.
-- **Suggest changes**: edit in place (add people, fix details, connect relatives, archive), review a summary, add an optional name and reason, and send. You get a **tracking link**; the Changes tab lists your requests and the reviewer's decision.
+- **Edit like a drawing tool**: hover (or tap) a person and four **+** handles appear — parent ↑, child ↓, spouse →, sibling ←. Click one for a quick-add popover (Enter to add, or link someone already in the tree), or **drag a + onto another person** to connect them (drop on empty space to add someone new there). Everyone you place stays where it is; new people appear next to their relatives; **Tidy** re-arranges the whole tree. Undo/redo (`Ctrl+Z` / `Ctrl+Shift+Z`) work for every edit.
+- **Suggest changes**: your edits are a draft until you review the summary, add an optional name and reason, and send. You get a **tracking link**; the Changes tab lists your requests and the reviewer's decision.
 - **Export** the tree as JSON or **GEDCOM** (opens in Ancestry, FamilySearch, Gramps, …), or print it. Light and dark themes.
 
 **Administrator (Admin Studio — `admin.html`)**
@@ -29,7 +30,7 @@ Git is the database, so every approved change is a commit: a complete, restorabl
 - **Guided review in the tree**: requests oldest first, one change at a time. The camera flies to the people involved, everything else dims, and the proposed change appears as a ghost node/link on the real tree. Accept / Reject / Back / Next (`A`, `R`, `←`, `→`).
 - Nothing is applied until a per-request summary ("Apply 2 accepted changes · 1 rejected"). The tree is reloaded after every apply and the next request is re-checked against it.
 - Requests made on an older tree are flagged and every change is re-validated against the current one; clashing IDs are re-assigned automatically.
-- Optional direct editing (with a GitHub token that stays in memory) and a notification webhook for new requests.
+- Optional direct editing with the same **+** handles (with a GitHub token that stays in memory) and a notification webhook for new requests.
 
 ## Repository map
 
@@ -38,6 +39,7 @@ Git is the database, so every approved change is a commit: a complete, restorabl
 | `index.html` | Public site: tree, editing, suggestions, tracking, export |
 | `admin.html` | Admin Studio: in-tree review, direct editing |
 | `tree-layout.js` | Generational layout shared by both pages (unit-tested) |
+| `canvas-handles.js` | The draw.io-style **+** handles and drag-to-connect, shared by both pages |
 | `data/family.json` | **The family data** — the single source of truth |
 | `data/config.json` | Where the API lives (`apiBase`) |
 | `backend/src/*` | Worker: `index` (routes), `auth`, `validate`, `graph`, `github`, `requests`, `ratelimit`, `notify`, `http`, `util` |
