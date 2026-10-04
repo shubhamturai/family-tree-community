@@ -106,7 +106,7 @@ function endSession(msg,bad){
   $("editor").classList.add("hidden");$("empty").classList.remove("hidden");showTab("edit");
   chip("Locked",false);$("count").textContent="";$("requests").innerHTML="";$("reviewStatus").textContent="Unlock admin to load requests.";status(msg||"Locked.",bad)
 }
-async function openRequestsIfPending(){await loadRequests();if(pending.length)showTab("review",false)}
+async function openRequestsIfPending(){await loadRequests();if(reqErr||!adminPassword)return;status((pending.length?pending.length+" pending community request(s) are in the Requests tab. ":"No pending community requests. ")+"Connect GitHub to edit the tree.");if(pending.length)showTab("review",false)}
 async function unlock(){
   let p=$("password").value;
   if(p.length<10){status("Use at least 10 characters.",true);return}
