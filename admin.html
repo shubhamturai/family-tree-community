@@ -16,8 +16,8 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 410px;height:calc(100vh - 72px)}.canvas{position:relative;overflow:hidden;border-right:1px solid var(--line);background:linear-gradient(180deg,#ffffff03,transparent 30%)}
 #tree{position:absolute;inset:0}.toolbar{position:absolute;top:16px;left:16px;right:16px;z-index:5;display:flex;justify-content:space-between;gap:10px;pointer-events:none}.toolbar>*{pointer-events:auto}
 .search{display:flex;align-items:center;gap:6px;padding:7px;background:#0b1220e8;border:1px solid var(--line);border-radius:12px}.search input{width:270px;background:transparent;border:0;outline:0;color:var(--text);padding:7px}
-.password-wrap{display:flex;gap:7px;align-items:center}.password-wrap input{flex:1}.password-wrap .btn{min-width:58px}..tip{position:absolute;left:16px;bottom:16px;z-index:5;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:#0b1220df;color:var(--muted);font-size:12px}
-.side{overflow:auto;background:linear-gradient(180deg,#0e1523,#0a0f18)}.side-inner{padding:16px}.tabs{display:flex;gap:6px;margin-bottom:14px}.tab{flex:1}.tab.active{background:#201b5e;border-color:#665df0}
+.password-wrap{display:flex;gap:7px;align-items:center}.password-wrap input{flex:1}.password-wrap .btn{min-width:58px}.tip{position:absolute;left:16px;bottom:16px;z-index:5;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:#0b1220df;color:var(--muted);font-size:12px}
+.side{overflow:auto;background:linear-gradient(180deg,#0e1523,#0a0f18)}.side-inner{padding:16px}.tabs{display:flex;gap:6px;margin-bottom:14px;position:sticky;top:0;z-index:3;padding:16px 0 8px;margin-top:-16px;background:#0e1523}#editPane,#reviewPane{scroll-margin-top:64px}.tab{flex:1}.tab.active{background:#201b5e;border-color:#665df0}
 .card{background:#10192a;border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:12px}.hidden{display:none!important}
 .profile{display:flex;gap:11px;align-items:center}.avatar{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#263553,#18233a);border:1px solid #354561;font-weight:850}.profile h2{margin:0;font-size:18px}.profile p{margin:3px 0 0;color:var(--muted);font-size:12px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}label{display:grid;gap:5px;color:#cbd5e1;font-size:12px;font-weight:700}input,select,textarea{width:100%;background:#0a111e;border:1px solid #27354c;color:var(--text);border-radius:9px;padding:9px;outline:none}input:focus,select:focus,textarea:focus{border-color:#6a5df0;box-shadow:0 0 0 3px #665de022}
@@ -75,7 +75,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 <div id="modal" class="modal"><div class="modal-box"><div class="modal-head"><h2 id="modalTitle">Add person</h2><button id="modalClose" class="btn small">Close</button></div><div id="modalBody" class="modal-body"></div><div class="modal-foot"><button id="modalCancel" class="btn">Cancel</button><button id="modalSave" class="btn primary">Save</button></div></div></div>
 <script>
 const OWNER="shubhamturai",REPO="family-tree-community",PATH="data/family.json",BRANCH="main",AUTH_KEY="familyGraphAdminAuth";
-let token="",adminPassword=sessionStorage.getItem("familyGraphAdminSession")||"",data=null,fileSha="",cy=null,selected=null,layout="tree",pending=[],reviewIssue=null;
+let token="",adminPassword=sessionStorage.getItem("familyGraphAdminSession")||"",data=null,fileSha="",cy=null,selected=null,layout="tree",pending=[],reviewIssue=null,sessionGen=0,reqSeq=0,reqSig="",reqErr=false,requestPoll=null,chipTimer=null;
 const $=id=>document.getElementById(id),person=id=>data&&data.persons.find(p=>p.id===id),name=p=>p&&((p.displayName)||[p.firstName,p.middleName,p.familyName].filter(Boolean).join(" ")),alive=p=>p&&p.recordStatus!=="deleted";
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
 function fmt(s){if(!s)return "";let p=String(s).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:s}
@@ -85,46 +85,64 @@ function status(t,bad){$("loginStatus").textContent=t;$("loginStatus").className
 function chip(t,ok){$("connection").textContent=t;$("connection").className="chip "+(ok?"ok":"bad")}
 let apiBase="";
 async function loadApiConfig(){try{let r=await fetch("./data/config.json?"+Date.now());if(!r.ok)throw Error();let c=await r.json();apiBase=String(c.apiBase||"").replace(/\/$/,"");return !!apiBase}catch(e){apiBase="";return false}}
-async function requestApi(path,opt={}){if(!apiBase)await loadApiConfig();if(!apiBase)throw Error("Request service is not configured.");let headers={"Content-Type":"application/json"};if(adminPassword)headers["Authorization"]="Bearer "+adminPassword;let url=apiBase+path;if((opt.method||"GET").toUpperCase()==="GET")url+=(url.includes("?")?"&":"?")+"_="+Date.now();let r=await fetch(url,Object.assign({},opt,{cache:"no-store",headers:Object.assign(headers,opt.headers||{})}));let j=await r.json().catch(()=>({}));if(!r.ok)throw Error((j.error||("Request service "+r.status))+" [HTTP "+r.status+"]");return j}
+async function requestApi(path,opt={}){if(!apiBase)await loadApiConfig();if(!apiBase)throw Error("Request service is not configured.");let headers={"Content-Type":"application/json"};if(adminPassword)headers["Authorization"]="Bearer "+adminPassword;let url=apiBase+path;if((opt.method||"GET").toUpperCase()==="GET")url+=(url.includes("?")?"&":"?")+"_="+Date.now();let r=await fetch(url,Object.assign({},opt,{cache:"no-store",headers:Object.assign(headers,opt.headers||{})}));let j=await r.json().catch(()=>({}));if(!r.ok){let e=Error((j.error||("Request service "+r.status))+" [HTTP "+r.status+"]");e.status=r.status;throw e}return j}
 function headers(){return {"Accept":"application/vnd.github+json","Authorization":"Bearer "+token,"X-GitHub-Api-Version":"2026-03-10","Content-Type":"application/json"}}
 async function api(path,opt){let r=await fetch("https://api.github.com"+path,Object.assign({},opt||{}, {headers:headers()}));let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error(j.message||("GitHub "+r.status));return j}
 function b64(s){let b=new TextEncoder().encode(s),o="";for(let i=0;i<b.length;i+=0x8000)o+=String.fromCharCode(...b.subarray(i,i+0x8000));return btoa(o)}
 function un64(s){let b=Uint8Array.from(atob(s.replace(/\n/g,"")),c=>c.charCodeAt(0));return new TextDecoder().decode(b)}
 async function hash(p,s){let k=await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveBits"]),x=await crypto.subtle.deriveBits({name:"PBKDF2",salt:s,iterations:150000,hash:"SHA-256"},k,256);return btoa(String.fromCharCode(...new Uint8Array(x)))}
+async function authenticate(p){
+  if(!apiBase)await loadApiConfig();
+  if(!apiBase)throw Error("Request service is not configured.");
+  let r=await fetch(apiBase+"/admin/check",{headers:{"Authorization":"Bearer "+p}}),j=await r.json().catch(()=>({}));
+  if(!r.ok){let e=Error(j.error||"Incorrect admin password.");e.status=r.status;throw e}
+}
+function startSession(p){adminPassword=p;sessionStorage.setItem("familyGraphAdminSession",p);$("tokenBox").classList.remove("hidden")}
+function endSession(msg,bad){
+  sessionGen++;reqSeq++;stopPoll();adminPassword="";token="";data=null;fileSha="";selected=null;pending=[];reqSig="";reqErr=false;reviewIssue=null;
+  sessionStorage.removeItem("familyGraphAdminSession");clearTimeout(chipTimer);
+  if(cy){cy.destroy();cy=null}
+  closeModal();$("password").value="";$("token").value="";$("tokenBox").classList.add("hidden");$("tokenStatus").textContent="Waiting for token.";$("tokenStatus").className="status";
+  $("editor").classList.add("hidden");$("empty").classList.remove("hidden");showTab("edit");
+  chip("Locked",false);$("count").textContent="";$("requests").innerHTML="";$("reviewStatus").textContent="Unlock admin to load requests.";status(msg||"Locked.",bad)
+}
+async function openRequestsIfPending(){await loadRequests();if(pending.length)showTab("review",false)}
 async function unlock(){
   let p=$("password").value;
   if(p.length<10){status("Use at least 10 characters.",true);return}
+  const g=sessionGen;
   try{
     await loadApiConfig();
-    if(!apiBase)throw Error("Request service is not configured.");
-    let r=await fetch(apiBase+"/admin/check",{headers:{"Authorization":"Bearer "+p}});
-    let j=await r.json().catch(()=>({}));
-    if(!r.ok)throw Error(j.error||"Incorrect admin password.");
-    adminPassword=p;
-    sessionStorage.setItem("familyGraphAdminSession",p);
+    await authenticate(p);
+    if(g!==sessionGen)return;
+    startSession(p);
     status("Unlocked. Now connect GitHub.");
-    $("tokenBox").classList.remove("hidden");
-    await loadRequests();
-  }catch(e){adminPassword="";sessionStorage.removeItem("familyGraphAdminSession");status("Admin authentication failed: "+e.message,true)}
+    await openRequestsIfPending();
+  }catch(e){if(g===sessionGen)status("Admin authentication failed: "+e.message,true)}
 }
 async function restoreAdminSession(){
   if(!adminPassword)return;
+  const g=sessionGen;
   try{
     await loadApiConfig();
-    if(!apiBase)throw Error("Request service is not configured.");
-    const r=await fetch(apiBase+"/admin/check",{headers:{"Authorization":"Bearer "+adminPassword}});
-    if(!r.ok)throw Error("Admin session expired.");
+    await authenticate(adminPassword);
+    if(g!==sessionGen)return;
+    $("tokenBox").classList.remove("hidden");
     status("Admin session restored. Community requests are available.");
-    await loadRequests();
-  }catch(e){adminPassword="";sessionStorage.removeItem("familyGraphAdminSession");status("Admin session expired. Unlock again to review requests.",true)}
+  }catch(e){
+    if(g!==sessionGen)return;
+    if(e.status===401){endSession("Admin session expired. Unlock again to review requests.",true);return}
+    $("tokenBox").classList.remove("hidden");status("Could not verify the admin session ("+e.message+"). Press ↻ to retry.",true);return
+  }
+  await openRequestsIfPending();
 }
 async function connect(){token=$("token").value.trim();if(!token)return;$("tokenStatus").textContent="Connecting…";try{await api("/repos/"+OWNER+"/"+REPO);await loadData();await loadRequests();chip("Connected",true);$("tokenStatus").textContent="Connected. Direct editing is enabled.";$("tokenStatus").className="status ok"}catch(e){token="";$("tokenStatus").textContent="Failed: "+e.message;$("tokenStatus").className="status danger";chip("Locked",false)}}
 async function loadData(){let f=await api("/repos/"+OWNER+"/"+REPO+"/contents/"+PATH+"?ref="+BRANCH);fileSha=f.sha;data=JSON.parse(un64(f.content));data.persons=data.persons||[];data.relationships=data.relationships||{};data.relationships.parentChild=data.relationships.parentChild||[];data.relationships.spouses=data.relationships.spouses||[];draw();if(selected)select(selected.id)}
-async function save(message){data.lastUpdated=new Date().toISOString();let r=await api("/repos/"+OWNER+"/"+REPO+"/contents/"+PATH,{method:"PUT",body:JSON.stringify({message:message,content:b64(JSON.stringify(data,null,2)+"\n"),sha:fileSha,branch:BRANCH})});fileSha=r.content.sha;draw();if(selected)select(selected.id);chip("Saved",true);setTimeout(()=>chip("Connected",true),1200)}
+async function save(message){data.lastUpdated=new Date().toISOString();let r;try{r=await api("/repos/"+OWNER+"/"+REPO+"/contents/"+PATH,{method:"PUT",body:JSON.stringify({message:message,content:b64(JSON.stringify(data,null,2)+"\n"),sha:fileSha,branch:BRANCH})})}catch(e){chip("Save failed",false);try{await loadData()}catch(_){}clearTimeout(chipTimer);chipTimer=setTimeout(()=>{if(token)chip("Connected",true)},4000);throw Error(e.message+" — latest data was reloaded; please redo your change.")}fileSha=r.content.sha;draw();if(selected)select(selected.id);chip("Saved",true);clearTimeout(chipTimer);chipTimer=setTimeout(()=>{if(token)chip("Connected",true)},1200)}
 function parents(){return data.relationships.parentChild.filter(r=>alive(person(r.parentId))&&alive(person(r.childId)))}
 function spouses(){return data.relationships.spouses.filter(r=>alive(person(r.personAId))&&alive(person(r.personBId)))}
 function treeNodes(q){return data.persons.filter(alive).filter(p=>!q||name(p).toLowerCase().includes(q.toLowerCase()))}
-function draw(q){let people=treeNodes(q||""),ids=new Set(people.map(p=>p.id)),nodes=people.map(p=>({data:{id:p.id,label:name(p)}})),edges=[];parents().forEach(r=>{if(ids.has(r.parentId)&&ids.has(r.childId))edges.push({data:{id:"pc"+r.parentId+r.childId,source:r.parentId,target:r.childId}})});spouses().forEach(r=>{if(ids.has(r.personAId)&&ids.has(r.personBId))edges.push({data:{id:"sp"+r.personAId+r.personBId,source:r.personAId,target:r.personBId},classes:"spouse"})});if(cy)cy.destroy();cy=cytoscape({container:$("tree"),elements:{nodes:nodes,edges:edges},style:[{selector:"node",style:{"background-color":"#15223a","border-color":"#415270","border-width":1,"label":"data(label)","color":"#eff4fc","font-size":12,"font-weight":800,"text-wrap":"wrap","text-max-width":"120px","text-valign":"center","text-halign":"center","width":120,"height":68,"shape":"round-rectangle"}},{selector:"node:selected",style:{"border-width":3,"border-color":"#8d7dff","shadow-blur":20,"shadow-color":"#6f63ef","shadow-opacity":.7}},{selector:"edge",style:{"curve-style":"bezier","line-color":"#52647f","width":2,"target-arrow-shape":"triangle","target-arrow-color":"#52647f"}},{selector:"edge.spouse",style:{"line-style":"dashed","line-color":"#b388ff","target-arrow-shape":"none"}}],layout:{name:"grid",rows:Math.max(1,Math.ceil(Math.sqrt(Math.max(1,nodes.length)))),padding:80}});cy.on("tap","node",e=>select(e.target.id()));cy.on("dblclick","node",e=>focus(e.target.id()));}
+function draw(q){if(!data)return;let people=treeNodes(q||""),ids=new Set(people.map(p=>p.id)),nodes=people.map(p=>({data:{id:p.id,label:name(p)}})),edges=[];parents().forEach(r=>{if(ids.has(r.parentId)&&ids.has(r.childId))edges.push({data:{id:"pc"+r.parentId+r.childId,source:r.parentId,target:r.childId}})});spouses().forEach(r=>{if(ids.has(r.personAId)&&ids.has(r.personBId))edges.push({data:{id:"sp"+r.personAId+r.personBId,source:r.personAId,target:r.personBId},classes:"spouse"})});if(cy)cy.destroy();cy=cytoscape({container:$("tree"),elements:{nodes:nodes,edges:edges},style:[{selector:"node",style:{"background-color":"#15223a","border-color":"#415270","border-width":1,"label":"data(label)","color":"#eff4fc","font-size":12,"font-weight":800,"text-wrap":"wrap","text-max-width":"120px","text-valign":"center","text-halign":"center","width":120,"height":68,"shape":"round-rectangle"}},{selector:"node:selected",style:{"border-width":3,"border-color":"#8d7dff","shadow-blur":20,"shadow-color":"#6f63ef","shadow-opacity":.7}},{selector:"edge",style:{"curve-style":"bezier","line-color":"#52647f","width":2,"target-arrow-shape":"triangle","target-arrow-color":"#52647f"}},{selector:"edge.spouse",style:{"line-style":"dashed","line-color":"#b388ff","target-arrow-shape":"none"}}],layout:{name:"grid",rows:Math.max(1,Math.ceil(Math.sqrt(Math.max(1,nodes.length)))),padding:80}});cy.on("tap","node",e=>{showTab("edit");select(e.target.id())});cy.on("dblclick","node",e=>focus(e.target.id()));}
 function select(id){let p=person(id);if(!p)return;selected=p;cy.nodes().unselect();cy.getElementById(id).select();$("empty").classList.add("hidden");$("editor").classList.remove("hidden");$("pname").textContent=name(p);$("pid").textContent=p.id+" · "+(p.dateOfDeath?"Deceased":(p.lifeStatus||"Unknown"));$("avatar").textContent=(name(p)||"?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();$("first").value=p.firstName||"";$("middle").value=p.middleName||"";$("family").value=p.familyName||"";$("display").value=p.displayName||"";$("gender").value=p.gender||"";$("nick").value=p.nickname||"";$("maiden").value=p.maidenName||"";$("dob").value=fmt(p.dateOfBirth);$("dod").value=fmt(p.dateOfDeath);$("birthPlace").value=p.birthPlace||"";$("birthRegion").value=p.birthRegion||"";$("birthCountry").value=p.birthCountry||"";$("deathPlace").value=p.deathPlace||"";$("location").value=p.currentLocation||"";$("occupation").value=p.occupation||"";$("notes").value=p.notes||"";relationView(p)}
 function relationView(p){let ps=parents().filter(r=>r.childId===p.id).map(r=>(r.role||"parent")+": "+name(person(r.parentId))),cs=parents().filter(r=>r.parentId===p.id).sort((a,b)=>(a.order||99)-(b.order||99)).map(r=>(r.order||"")+" · "+name(person(r.childId))),ss=spouses().filter(r=>r.personAId===p.id||r.personBId===p.id).map(r=>name(person(r.personAId===p.id?r.personBId:r.personAId)));$("rels").innerHTML='<div><span>Parents</span><b>'+esc(ps.join(" · ")||"None")+'</b></div><div><span>Spouses</span><b>'+esc(ss.join(" · ")||"None")+'</b></div><div><span>Children · ordered</span><b>'+esc(cs.join(" · ")||"None")+'</b></div>'}
 function focus(id){let n=cy.getElementById(id);if(n.length){cy.fit(n.closedNeighborhood(),90);n.select()}}
@@ -134,63 +152,76 @@ async function restore(){if(!selected)return;selected.recordStatus="active";dele
 function modal(title,body,saveFn,cancelFn,saveLabel="Save",cancelLabel="Cancel"){ $("modalTitle").textContent=title;$("modalBody").innerHTML=body;$("modal").classList.add("open");$("modalSave").textContent=saveLabel;$("modalCancel").textContent=cancelLabel;$("modalSave").className="btn primary";$("modalCancel").className="btn";$("modalSave").onclick=saveFn;$("modalCancel").onclick=cancelFn||closeModal;$("modalClose").onclick=closeModal}
 function closeModal(){$("modal").classList.remove("open")}
 function newPersonFields(extra){return '<div class="grid2"><label>First name<input id="mFirst"></label><label>Family name<input id="mFamily"></label><label>Display name<input id="mDisplay"></label><label>Gender<select id="mGender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label><label>DOB · DD/MM/YYYY<input id="mDob" maxlength="10" placeholder="DD/MM/YYYY"></label>'+extra+'</div>'}
-function addPersonModal(){modal("Add person",newPersonFields('<label>Birth place<input id="mBirthPlace"></label>'),async()=>{try{let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim(),dob=parse($("mDob").value);if(!nm)throw Error("Name required");if($("mDob").value&&!dob)throw Error("DOB must be DD/MM/YYYY");let id=nextId();data.persons.push({id:id,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:dob,dateOfDeath:"",lifeStatus:"unknown",birthPlace:$("mBirthPlace").value.trim(),birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"});await save("Admin add "+id);closeModal();select(id)}catch(e){alert(e.message)}})}
+function addPersonModal(){modal("Add person",newPersonFields('<label>Birth place<input id="mBirthPlace"></label>'),async()=>{try{let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim(),dob=parse($("mDob").value);if(!nm)throw Error("Name required");if($("mDob").value&&!dob)throw Error("DOB must be DD/MM/YYYY");let id=nextId();data.persons.push({id:id,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:dob,dateOfDeath:"",lifeStatus:"unknown",birthPlace:$("mBirthPlace").value.trim(),birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"});await save("Admin add "+id);closeModal();showTab("edit");select(id)}catch(e){alert(e.message)}})}
 function relationshipModal(kind){let opts=data.persons.filter(alive).map(p=>'<option value="'+p.id+'">'+esc(name(p))+' · '+p.id+'</option>').join(""), title=kind==="child"?"Add child":"Add parent";let body='<p class="muted">'+title+' for <b>'+esc(name(selected))+'</b>.</p><label>Use existing person<select id="mExisting"><option value="__new">＋ Create new person</option>'+opts+'</select></label><div id="mNew" style="margin-top:10px">'+newPersonFields("")+'</div><div class="grid2" style="margin-top:10px"><label>Role<select id="mRole"><option value="parent">Parent</option><option value="father">Father</option><option value="mother">Mother</option><option value="adoptive_father">Adoptive father</option><option value="adoptive_mother">Adoptive mother</option><option value="step_father">Step-father</option><option value="step_mother">Step-mother</option></select></label><label>Order<input id="mOrder" type="number" min="1" value="1"></label></div>';modal(title,body,async()=>{try{let target=$("mExisting").value;if(target==="__new"){let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim(),dob=parse($("mDob").value);if(!nm)throw Error("Name required");if($("mDob").value&&!dob)throw Error("DOB must be DD/MM/YYYY");target=nextId();data.persons.push({id:target,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:dob,dateOfDeath:"",lifeStatus:"unknown",birthPlace:"",birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"})}if(target===selected.id)throw Error("Cannot relate a person to themselves");let parentId=kind==="child"?selected.id:target,childId=kind==="child"?target:selected.id;if(data.relationships.parentChild.some(r=>r.parentId===parentId&&r.childId===childId))throw Error("Relationship already exists");data.relationships.parentChild.push({parentId:parentId,childId:childId,role:$("mRole").value,order:Number($("mOrder").value)||1});await save("Admin add parent-child "+parentId+" → "+childId);closeModal();select(selected.id)}catch(e){alert(e.message)}});$("mExisting").onchange=function(){$("mNew").style.display=this.value==="__new"?"block":"none"}}
-function spouseModal(){let opts=data.persons.filter(alive).map(p=>'<option value="'+p.id+'">'+esc(name(p))+' · '+p.id+'</option>').join(""),body='<p class="muted">Add spouse for <b>'+esc(name(selected))+'</b>.</p><label>Use existing person<select id="mExisting"><option value="__new">＋ Create new person</option>'+opts+'</select></label><div id="mNew" style="margin-top:10px">'+newPersonFields("")+'</div><div class="grid2" style="margin-top:10px"><label>Marriage date · DD/MM/YYYY<input id="mMarriage" maxlength="10" placeholder="DD/MM/YYYY"></label><label>Order<input id="mOrder" type="number" min="1" value="1"></label></div>';modal("Add spouse",body,async()=>{try{let target=$("mExisting").value;if(target==="__new"){let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim();if(!nm)throw Error("Name required");target=nextId();data.persons.push({id:target,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:"",dateOfDeath:"",lifeStatus:"unknown",birthPlace:"",birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"})}if(target===selected.id)throw Error("Cannot spouse a person with themselves");if(data.relationships.spouses.some(r=>new Set([r.personAId,r.personBId]).size===2&&[r.personAId,r.personBId].includes(selected.id)&&[r.personAId,r.personBId].includes(target)))throw Error("Spouse relationship already exists");let md=parse($("mMarriage").value);if($("mMarriage").value&&!md)throw Error("Marriage date must be DD/MM/YYYY");data.relationships.spouses.push({personAId:selected.id,personBId:target,order:Number($("mOrder").value)||1,marriageDate:md,divorceDate:""});await save("Admin add spouse "+selected.id+" ↔ "+target);closeModal();select(target)}catch(e){alert(e.message)}});$("mExisting").onchange=function(){$("mNew").style.display=this.value==="__new"?"block":"none"}}
-async function ensureAdminSession(){
-  if(adminPassword)return true;
-  let p=prompt("Enter admin password to view community edit requests:");
-  if(!p)return false;
-  if(p.length<10){$("reviewStatus").textContent="Admin password must be at least 10 characters.";return false}
-  await loadApiConfig();
-  if(!apiBase){$("reviewStatus").textContent="Request service is not configured.";return false}
-  try{
-    let r=await fetch(apiBase+"/admin/check",{headers:{"Authorization":"Bearer "+p}});
-    let j=await r.json().catch(()=>({}));
-    if(!r.ok)throw Error(j.error||"Incorrect admin password.");
-    adminPassword=p;
-    sessionStorage.setItem("familyGraphAdminSession",p);
-    status("Admin session active. Community requests can now be reviewed.");
-    $("tokenBox").classList.remove("hidden");
-    return true;
-  }catch(e){$("reviewStatus").textContent="Admin authentication failed: "+e.message;return false}
+function spouseModal(){let opts=data.persons.filter(alive).map(p=>'<option value="'+p.id+'">'+esc(name(p))+' · '+p.id+'</option>').join(""),body='<p class="muted">Add spouse for <b>'+esc(name(selected))+'</b>.</p><label>Use existing person<select id="mExisting"><option value="__new">＋ Create new person</option>'+opts+'</select></label><div id="mNew" style="margin-top:10px">'+newPersonFields("")+'</div><div class="grid2" style="margin-top:10px"><label>Marriage date · DD/MM/YYYY<input id="mMarriage" maxlength="10" placeholder="DD/MM/YYYY"></label><label>Order<input id="mOrder" type="number" min="1" value="1"></label></div>';modal("Add spouse",body,async()=>{try{let target=$("mExisting").value;if(target==="__new"){let nm=($("mDisplay").value||[$("mFirst").value,$("mFamily").value].filter(Boolean).join(" ")).trim();if(!nm)throw Error("Name required");target=nextId();data.persons.push({id:target,firstName:$("mFirst").value.trim(),middleName:"",familyName:$("mFamily").value.trim(),displayName:nm,gender:$("mGender").value,dateOfBirth:"",dateOfDeath:"",lifeStatus:"unknown",birthPlace:"",birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"})}if(target===selected.id)throw Error("Cannot spouse a person with themselves");if(data.relationships.spouses.some(r=>new Set([r.personAId,r.personBId]).size===2&&[r.personAId,r.personBId].includes(selected.id)&&[r.personAId,r.personBId].includes(target)))throw Error("Spouse relationship already exists");let md=parse($("mMarriage").value);if($("mMarriage").value&&!md)throw Error("Marriage date must be DD/MM/YYYY");data.relationships.spouses.push({personAId:selected.id,personBId:target,order:Number($("mOrder").value)||1,marriageDate:md,divorceDate:""});await save("Admin add spouse "+selected.id+" ↔ "+target);closeModal();showTab("edit");select(target)}catch(e){alert(e.message)}});$("mExisting").onchange=function(){$("mNew").style.display=this.value==="__new"?"block":"none"}}
+function stopPoll(){if(requestPoll){clearInterval(requestPoll);requestPoll=null}}
+function showTab(n,load=true){
+  const r=n==="review",changed=$("reviewPane").classList.contains("hidden")===r;
+  $("editPane").classList.toggle("hidden",r);$("reviewPane").classList.toggle("hidden",!r);$("reviewTab").classList.toggle("active",r);$("editTab").classList.toggle("active",!r);
+  stopPoll();
+  if(r){if(load)loadRequests();if(adminPassword)requestPoll=setInterval(()=>{if(!document.hidden)loadRequests()},10000)}
+  if(changed&&adminPassword)$(r?"reviewPane":"editPane").scrollIntoView({block:"start"})
+}
+function renderRequests(){
+  $("requests").innerHTML=pending.length?pending.map(x=>'<div class="issue"><h4>'+esc(x.id)+' · '+esc(x.title||"Family graph request")+'</h4><p>'+esc(x.createdAt||x.created_at||"")+'</p><p>Source: <b>'+esc(x.source||"public-web")+'</b></p><pre>'+esc(JSON.stringify(x.proposal||{},null,2))+'</pre><div class="row"><button class="btn small" data-review="'+esc(x.id)+'">Review</button></div></div>').join(""):'<div class="card muted">No pending requests.</div>'
 }
 async function loadRequests(){
+  if(!adminPassword){$("reviewStatus").textContent="Unlock admin to load requests.";return}
+  const seq=++reqSeq,gen=sessionGen;
   try{
-    if(!(await ensureAdminSession()))return;
-    await loadApiConfig();
-    if(!apiBase){$("reviewStatus").textContent="Request service is not configured.";return}
-    $("reviewStatus").textContent="Loading requests…";
+    if(!reqSig)$("reviewStatus").textContent="Loading requests…";
     let xs=await requestApi("/requests?status=pending");
-    pending=Array.isArray(xs.requests)?xs.requests:[];
-    $("count").textContent=pending.length?"("+pending.length+")":"";
-    $("reviewStatus").textContent=pending.length+ " pending request(s).";
-    if(pending.length){$("editPane").classList.add("hidden");$("reviewPane").classList.remove("hidden");$("reviewTab").classList.add("active");$("editTab").classList.remove("active")}
-    $("requests").innerHTML=pending.length?pending.map(x=>'<div class="issue"><h4>'+esc(x.id)+' · '+esc(x.title||"Family graph request")+'</h4><p>'+esc(x.createdAt||x.created_at||"")+'</p><p>Source: <b>'+esc(x.source||"public-web")+'</b></p><pre>'+esc(JSON.stringify(x.proposal||{},null,2))+'</pre><div class="row"><button class="btn small" onclick="review(\''+esc(x.id)+'\')">Review</button></div></div>').join(""):'<div class="card muted">No pending requests.</div>';
-  }catch(e){$("reviewStatus").textContent=e.message}
+    if(seq!==reqSeq||gen!==sessionGen)return;
+    let list=Array.isArray(xs.requests)?xs.requests:[],total=Math.max(Number(xs.total)||0,list.length),sig=JSON.stringify(list);
+    pending=list;
+    $("count").textContent=total?"("+total+")":"";
+    $("reviewStatus").textContent=total>list.length?"Showing the oldest "+list.length+" of "+total+" pending requests.":list.length+" pending request(s).";
+    if(sig!==reqSig){reqSig=sig;renderRequests()}
+    if(reqErr){reqErr=false;status("Admin session active. Community requests loaded.")}
+  }catch(e){
+    if(seq!==reqSeq||gen!==sessionGen)return;
+    if(e.status===401){endSession("Admin session expired. Unlock again to review requests.",true);return}
+    reqErr=true;$("count").textContent="(!)";$("reviewStatus").textContent=e.message;status("Could not load requests: "+e.message,true)
+  }
+}
+async function afterReview(){
+  if(token){try{await loadData()}catch(e){alert("Request processed, but reloading the family data failed: "+e.message+". Press ↻ before editing.")}}
+  await loadRequests()
 }
 function review(n){
   let item=pending.find(x=>x.id===n);if(!item)return;
   reviewIssue=item;
-  let p=item.proposal||{operation:"UNKNOWN",payload:{}};
+  let p=item.proposal||{operation:"UNKNOWN",payload:{}},busy=false;
+  const lock=v=>{$("modalSave").disabled=v;$("modalCancel").disabled=v;$("modalClose").disabled=v};
+  const once=fn=>async()=>{if(busy)return;busy=true;lock(true);try{await fn()}finally{busy=false;lock(false)}};
   modal("Review request "+esc(n),'<p class="muted">Source: <b>'+esc(item.source||"public-web")+'</b></p><label>Proposal JSON<textarea id="rjson" rows="15" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">'+esc(JSON.stringify(p,null,2))+'</textarea></label><label style="margin-top:10px">Admin note<textarea id="rnote" rows="3"></textarea></label>',
-    async()=>{
-      try{
-        let np=JSON.parse($("rjson").value);
-        await requestApi("/requests/"+encodeURIComponent(n)+"/approve",{method:"POST",body:JSON.stringify({proposal:np,note:$("rnote").value.trim()})});
-        closeModal();reviewIssue=null;loadRequests();
-      }catch(e){alert(e.message)}
-    },
-    async()=>{
-      let note=$("rnote")?.value?.trim();if(!note){alert("Enter what needs to change.");return}
-      try{await requestApi("/requests/"+encodeURIComponent(n)+"/reject",{method:"POST",body:JSON.stringify({note})});closeModal();reviewIssue=null;loadRequests()}catch(e){alert(e.message)}
-    },
+    once(async()=>{
+      let np;try{np=JSON.parse($("rjson").value)}catch(e){alert("Proposal JSON is invalid: "+e.message);return}
+      try{await requestApi("/requests/"+encodeURIComponent(n)+"/approve",{method:"POST",body:JSON.stringify({proposal:np,note:$("rnote").value.trim()})})}
+      catch(e){alert(e.message);if(e.status===409)loadRequests();return}
+      closeModal();reviewIssue=null;await afterReview()
+    }),
+    once(async()=>{
+      let note=$("rnote").value.trim();if(!note){alert("Enter what needs to change.");return}
+      try{await requestApi("/requests/"+encodeURIComponent(n)+"/reject",{method:"POST",body:JSON.stringify({note})})}
+      catch(e){alert(e.message);if(e.status===409)loadRequests();return}
+      closeModal();reviewIssue=null;await loadRequests()
+    }),
     "Approve","Reject");
 }
-$("togglePassword").onclick=()=>{const i=$("password"),b=$("togglePassword");i.type=i.type==="password"?"text":"password";b.textContent=i.type==="password"?"Show":"Hide";b.setAttribute("aria-label",i.type==="password"?"Show password":"Hide password")};$("login").onclick=unlock;$("connect").onclick=connect;$("refresh").onclick=()=>token&&loadData().then(loadRequests);$("lock").onclick=()=>{token="";adminPassword="";sessionStorage.removeItem("familyGraphAdminSession");data=null;cy?.destroy();$("tokenBox").classList.add("hidden");$("editor").classList.add("hidden");$("empty").classList.remove("hidden");chip("Locked",false);$("count").textContent="";$("requests").innerHTML="";$("reviewStatus").textContent="Unlock admin to load requests."};$("treeMode").onclick=()=>{layout="tree";draw($("search").value)};$("networkMode").onclick=()=>{layout="network";draw($("search").value)};$("fit").onclick=()=>cy?.fit(undefined,80);$("search").oninput=e=>draw(e.target.value);$("clearSearch").onclick=()=>{$("search").value="";draw()};$("addPerson").onclick=addPersonModal;$("childBtn").onclick=()=>relationshipModal("child");$("parentBtn").onclick=()=>relationshipModal("parent");$("spouseBtn").onclick=spouseModal;$("focusBtn").onclick=()=>focus(selected.id);$("save").onclick=saveSelected;$("archive").onclick=archive;$("restore").onclick=restore;$("editTab").onclick=()=>{$("editPane").classList.remove("hidden");$("reviewPane").classList.add("hidden");$("editTab").classList.add("active");$("reviewTab").classList.remove("active")};$("reviewTab").onclick=async()=>{$("editPane").classList.add("hidden");$("reviewPane").classList.remove("hidden");$("reviewTab").classList.add("active");$("editTab").classList.remove("active");await loadRequests()};$("refreshRequests").onclick=loadRequests;$("modalClose").onclick=closeModal;
-let requestPoll=null;
-$("reviewTab").addEventListener("click",async()=>{if(requestPoll)clearInterval(requestPoll);await loadRequests();requestPoll=setInterval(()=>{if(!$("reviewPane").classList.contains("hidden"))loadRequests()},10000)});
-$("editTab").addEventListener("click",()=>{if(requestPoll){clearInterval(requestPoll);requestPoll=null}});
+const guarded=fn=>async()=>{try{await fn()}catch(e){alert(e.message)}};
+$("togglePassword").onclick=()=>{const i=$("password"),b=$("togglePassword");i.type=i.type==="password"?"text":"password";b.textContent=i.type==="password"?"Show":"Hide";b.setAttribute("aria-label",i.type==="password"?"Show password":"Hide password")};
+$("login").onclick=unlock;$("connect").onclick=connect;
+$("refresh").onclick=async()=>{if(token){try{await loadData()}catch(e){alert(e.message)}}if(adminPassword)loadRequests()};
+$("lock").onclick=()=>endSession("Locked.");
+$("treeMode").onclick=()=>{layout="tree";draw($("search").value)};$("networkMode").onclick=()=>{layout="network";draw($("search").value)};$("fit").onclick=()=>cy?.fit(undefined,80);$("search").oninput=e=>draw(e.target.value);$("clearSearch").onclick=()=>{$("search").value="";draw()};
+$("addPerson").onclick=()=>{if(!data){alert("Connect GitHub first to edit the tree.");return}addPersonModal()};
+$("childBtn").onclick=()=>relationshipModal("child");$("parentBtn").onclick=()=>relationshipModal("parent");$("spouseBtn").onclick=spouseModal;$("focusBtn").onclick=()=>selected&&focus(selected.id);
+$("save").onclick=guarded(saveSelected);$("archive").onclick=guarded(archive);$("restore").onclick=guarded(restore);
+$("editTab").onclick=()=>showTab("edit");$("reviewTab").onclick=()=>{showTab("review");if(!adminPassword)$("password").focus()};
+$("refreshRequests").onclick=loadRequests;$("modalClose").onclick=closeModal;
+$("requests").onclick=e=>{const b=e.target.closest("[data-review]");if(b)review(b.dataset.review)};
 restoreAdminSession();
 </script>
 </body>
