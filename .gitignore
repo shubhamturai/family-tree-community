@@ -1,0 +1,6 @@
+node_modules/
+.wrangler/
+backend/public/
+cloudflare-pages-dist/
+test-results/
+*.log
