@@ -96,6 +96,41 @@ describe("public submissions", () => {
   });
 });
 
+describe("notifications", () => {
+  const hooks = [];
+  const realFetch = () => globalThis.fetch;
+  test("a new request pings the configured webhook without delaying or breaking the submission", async () => {
+    const inner = globalThis.fetch;
+    globalThis.fetch = async (url, opt) => { if (String(url).startsWith("https://hooks.test")) { hooks.push({ url: String(url), body: opt.body, type: opt.headers["Content-Type"] }); return new Response("ok"); } return inner(url, opt); };
+    try {
+      const jobs = [], ctx = { waitUntil: (p) => jobs.push(p) };
+      const e = { ...env, NOTIFY_WEBHOOK_URL: "https://hooks.test/abc" };
+      const r = await call(worker, e, "/requests", { method: "POST", ctx, body: { proposal: batch([addPerson({ displayName: "Meera" })]), meta: { name: "Priya", message: "Family Bible" } } });
+      assert.equal(r.status, 201);
+      await Promise.all(jobs);
+      assert.equal(hooks.length, 1);
+      const sent = JSON.parse(hooks[0].body);
+      assert.match(sent.text, /1 change from Priya/); assert.match(sent.text, /Family Bible/); assert.match(sent.text, /\/admin\.html/);
+      assert.equal(sent.content, sent.text);
+      // plain-text mode (ntfy) and a failing webhook that must not break the request
+      hooks.length = 0;
+      await Promise.all([(await call(worker, { ...e, NOTIFY_FORMAT: "text" }, "/requests", { method: "POST", ctx, ip: "5.5.5.5", body: { proposal: batch([addPerson({ displayName: "B" })]) } })) && jobs.at(-1)]);
+      assert.equal(hooks[0].type, "text/plain");
+      globalThis.fetch = async (url, opt) => { if (String(url).startsWith("https://hooks.test")) throw new Error("webhook down"); return inner(url, opt); };
+      const bad = await call(worker, e, "/requests", { method: "POST", ctx, ip: "6.6.6.6", body: { proposal: batch([addPerson({ displayName: "C" })]) } });
+      assert.equal(bad.status, 201);
+      await Promise.all(jobs);
+    } finally { globalThis.fetch = inner; }
+  });
+  test("no webhook configured means no outbound call", async () => {
+    let called = false;
+    const inner = globalThis.fetch;
+    globalThis.fetch = async (...a) => { called = true; return inner(...a); };
+    try { assert.equal((await submit(batch([addPerson({ displayName: "Quiet" })]), { ip: "7.7.7.7" })).status, 201); } finally { globalThis.fetch = inner; }
+    assert.equal(called, false);
+  });
+});
+
 describe("review and approval", () => {
   const approve = (token, id, proposal, note = "") => call(worker, env, "/requests/" + id + "/approve", { method: "POST", token, body: { proposal, note } });
 

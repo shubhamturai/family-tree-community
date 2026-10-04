@@ -96,9 +96,9 @@ export const baseEnv = (extra = {}) => ({
   DB: makeD1(), ADMIN_PASSWORD: "correct-horse-battery", GITHUB_TOKEN: "t", GITHUB_OWNER: "o", GITHUB_REPO: "r", GITHUB_PATH: "data/family.json", GITHUB_BRANCH: "main", ...extra,
 });
 
-export const call = (worker, env, path, { method = "GET", body, token, headers = {}, ip = "1.1.1.1" } = {}) =>
+export const call = (worker, env, path, { method = "GET", body, token, headers = {}, ip = "1.1.1.1", ctx } = {}) =>
   worker.fetch(new Request("https://x.test" + path, {
     method,
     headers: { "Content-Type": "application/json", "CF-Connecting-IP": ip, ...(token ? { Authorization: "Bearer " + token } : {}), ...headers },
     body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body),
-  }), env);
+  }), env, ctx);

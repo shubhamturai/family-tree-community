@@ -6,6 +6,7 @@ on:
     paths:
       - "index.html"
       - "admin.html"
+      - "tree-layout.js"
       - "data/**"
       - "_worker.js"
       - "wrangler.toml"
@@ -30,10 +31,12 @@ jobs:
           mkdir -p cloudflare-pages-dist/data
           cp index.html cloudflare-pages-dist/index.html
           cp admin.html cloudflare-pages-dist/admin.html
+          cp tree-layout.js cloudflare-pages-dist/tree-layout.js
           cp _worker.js cloudflare-pages-dist/_worker.js
           cp data/* cloudflare-pages-dist/data/
           test -s cloudflare-pages-dist/index.html
           test -s cloudflare-pages-dist/admin.html
+          test -s cloudflare-pages-dist/tree-layout.js
           test -s cloudflare-pages-dist/_worker.js
           test -s cloudflare-pages-dist/data/config.json
           test -s cloudflare-pages-dist/data/family.json

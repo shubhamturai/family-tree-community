@@ -4,6 +4,7 @@ import { login, requireAdmin, adminConfigured } from "./auth.js";
 import { clientKey, count, record } from "./ratelimit.js";
 import { sanitizeProposal, sanitizeMeta } from "./validate.js";
 import { getGraph, applyAndCommit, gh } from "./github.js";
+import { notifyNewRequest } from "./notify.js";
 import * as queue from "./requests.js";
 
 const LOGIN_LIMIT = { max: 8, windowSec: 600 };
@@ -18,7 +19,7 @@ async function liveGraph(env, fresh) {
   return body;
 }
 
-async function route(req, env) {
+async function route(req, env, ctx) {
   const url = new URL(req.url), path = url.pathname.replace(/\/+$/, "") || "/", method = req.method;
 
   if (path === "/health") {
@@ -85,6 +86,8 @@ async function route(req, env) {
     if ((await queue.pendingCount(env)) >= queue.MAX_PENDING) throw new HttpError(503, "The review queue is full right now. Please try again later.");
     const { id, createdAt } = await queue.createRequest(env, proposal, b.source);
     await record(env, bucket);
+    const job = notifyNewRequest(env, { origin: url.origin, proposal });
+    if (ctx?.waitUntil) ctx.waitUntil(job); else await job;
     return json({ ok: true, id, status: "pending", createdAt }, 201);
   }
 
@@ -127,10 +130,10 @@ async function route(req, env) {
 }
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
     try {
-      return await route(req, env);
+      return await route(req, env, ctx);
     } catch (e) {
       const status = e.status >= 400 && e.status < 600 ? e.status : 500;
       if (status === 500) console.error("Unhandled error:", e);
