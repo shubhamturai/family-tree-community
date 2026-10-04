@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Unit + browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Unit tests (Worker, validation, graph integrity)
+        run: npm run test:unit
+
+      - name: Browser tests (real pages + real Worker, fake D1/GitHub)
+        run: npm run test:e2e
+
+      - name: Syntax check the pages' inline scripts
+        run: |
+          node -e '
+            const fs = require("fs");
+            for (const f of ["index.html", "admin.html"]) {
+              const html = fs.readFileSync(f, "utf8");
+              const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+              scripts.forEach((s, i) => { try { new Function(s); } catch (e) { console.error(f + " script " + i + ": " + e.message); process.exit(1); } });
+              console.log(f + ": " + scripts.length + " inline script(s) parse OK");
+            }
+          '

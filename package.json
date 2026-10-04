@@ -1,0 +1,16 @@
+{
+  "name": "family-tree-community",
+  "private": true,
+  "type": "module",
+  "description": "Community-editable family tree: static site + Cloudflare Worker request API, with git as the database.",
+  "scripts": {
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test tests/unit/*.test.mjs",
+    "test:e2e": "node --test --test-concurrency=1 --test-timeout=120000 tests/e2e/*.test.mjs"
+  },
+  "devDependencies": {
+    "cytoscape": "3.33.1",
+    "playwright": "1.56.1"
+  },
+  "engines": { "node": ">=20" }
+}

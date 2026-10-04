@@ -89,7 +89,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 
 <script>
 const REPO="shubhamturai/family-tree-community",DRAFT_KEY="familyGraphDraftV5",AUTH_KEY="familyGraphAdminAuth";
-let data=null,liveData=null,cy=null,layoutMode="tree",selectedId=null,editing=false,adminMode=false,adminPassword=sessionStorage.getItem("familyGraphAdminSession")||null,baseLastUpdated="",changes=[];
+let data=null,liveData=null,cy=null,layoutMode="tree",selectedId=null,editing=false,adminMode=false,adminToken=sessionStorage.getItem("familyGraphAdminSession")||null,baseLastUpdated="",changes=[];
 const $=id=>document.getElementById(id),byId=id=>data?.persons.find(p=>p.id===id),active=p=>p&&p.recordStatus!=="deleted",name=p=>p&&(p.displayName||[p.firstName,p.middleName,p.familyName].filter(Boolean).join(" "));
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
 function deep(v){return JSON.parse(JSON.stringify(v))}
@@ -210,7 +210,7 @@ async function showRequestsLink(){
   try{
     let cfg={};let cr=await fetch("./data/config.json?"+Date.now());if(cr.ok)cfg=await cr.json();
     const endpoint=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"");
-    const r=await fetch(endpoint+"/requests?status=pending&_="+Date.now(),{cache:"no-store",headers:{"Authorization":"Bearer "+adminPassword}});
+    const r=await fetch(endpoint+"/requests?status=pending&_="+Date.now(),{cache:"no-store",headers:{"Authorization":"Bearer "+adminToken}});
     if(!r.ok)return;
     const j=await r.json(),n=Math.max(Number(j.total)||0,(j.requests||[]).length);
     a.textContent=n?"Requests ("+n+")":"Requests";
@@ -223,17 +223,18 @@ async function unlockAdmin(){
   try{
     let cfg={};let cr=await fetch("./data/config.json?"+Date.now());if(cr.ok)cfg=await cr.json();
     const endpoint=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"");
-    const r=await fetch(endpoint+"/admin/check",{headers:{"Authorization":"Bearer "+p}});
-    if(!r.ok){let j={};try{j=await r.json()}catch(_){}throw Error(j.error||"Incorrect admin password.")}
-    adminPassword=p;
-    sessionStorage.setItem("familyGraphAdminSession",p);
+    const r=await fetch(endpoint+"/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:p})});
+    let j={};try{j=await r.json()}catch(_){}
+    if(!r.ok||!j.token)throw Error(j.error||"Incorrect admin password.");
+    adminToken=j.token;
+    sessionStorage.setItem("familyGraphAdminSession",j.token);
     adminMode=true;
     setEditMode(true);
     $("modeChip").textContent="Admin edit";
     $("modeChip").className="chip admin";
     $("finishBtn").textContent="Save changes";$("submitChanges").textContent="Save changes";
     showRequestsLink();alert("Admin editing enabled. Admin saves are applied directly by the administrator. Community edit requests are reviewed from the Requests button in the header (Admin Studio).");
-  }catch(e){adminPassword=null;sessionStorage.removeItem("familyGraphAdminSession");alert("Admin authentication failed: "+(e.message||e))}
+  }catch(e){adminToken=null;sessionStorage.removeItem("familyGraphAdminSession");alert("Admin authentication failed: "+(e.message||e))}
 }
 function finishEditing(){
  if(!changes.length){setEditMode(false);return}
@@ -256,13 +257,13 @@ async function submitRequest(isAdmin=false){
   const endpoint=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"");
   try{
     if(isAdmin){
-      if(!adminPassword){alert("Admin session expired. Unlock admin mode again.");return}
-      const r=await fetch(endpoint+"/admin/apply",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+adminPassword},body:JSON.stringify({proposal})});
+      if(!adminToken){alert("Admin session expired. Unlock admin mode again.");return}
+      const r=await fetch(endpoint+"/admin/apply",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+adminToken},body:JSON.stringify({proposal})});
       let result={};try{result=await r.json()}catch(_){}
       if(!r.ok)throw Error(result.error||("Admin save failed (HTTP "+r.status+")"));
       draftClear();changes=[];
       liveData=deep(result.data||liveData);data=deep(liveData);baseLastUpdated=liveData.lastUpdated||"";
-      setEditMode(false);adminMode=false;adminPassword=null;sessionStorage.removeItem("familyGraphAdminSession");$("requestsLink").classList.add("hidden");
+      setEditMode(false);adminMode=false;adminToken=null;sessionStorage.removeItem("familyGraphAdminSession");$("requestsLink").classList.add("hidden");
       alert("Changes applied directly to the published family graph.");
       renderChanges();draw();
       return;
@@ -287,7 +288,7 @@ function renderEmergencyTree(error){const people=Array.isArray(data?.persons)?da
 async function boot(){
  try{
   let live=await fetch("./data/family.json?"+Date.now());if(!live.ok)throw Error("family.json HTTP "+live.status);liveData=deep(await live.json());baseLastUpdated=liveData.lastUpdated||"";data=deep(liveData);loadDraft();renderChanges();try{draw()}catch(e){console.error(e);renderEmergencyTree(e)}
-  if(adminPassword){try{let cfg=await (await fetch("./data/config.json?"+Date.now())).json();let ep=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"");let ar=await fetch(ep+"/admin/check",{headers:{"Authorization":"Bearer "+adminPassword}});if(ar.ok){adminMode=true;setEditMode(true);$("modeChip").textContent="Admin edit";$("modeChip").className="chip admin";$("finishBtn").textContent="Save changes";$("submitChanges").textContent="Save changes";showRequestsLink()}else{adminPassword=null;sessionStorage.removeItem("familyGraphAdminSession")}}catch(_){}}
+  if(adminToken){try{let cfg=await (await fetch("./data/config.json?"+Date.now())).json();let ep=(cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"");let ar=await fetch(ep+"/admin/check",{headers:{"Authorization":"Bearer "+adminToken}});if(ar.ok){adminMode=true;setEditMode(true);$("modeChip").textContent="Admin edit";$("modeChip").className="chip admin";$("finishBtn").textContent="Save changes";$("submitChanges").textContent="Save changes";showRequestsLink()}else{adminToken=null;sessionStorage.removeItem("familyGraphAdminSession")}}catch(_){}}
  }catch(e){console.error(e);$("tree").innerHTML='<div style="padding:90px 30px;color:#ffb8c0"><h2>Unable to load family data</h2><p>'+esc(e.message||e)+'</p><p style="color:var(--muted)">Please check the deployed data file and refresh.</p></div>'}
 }
 let connectMode=false,pendingConnect=null; $("connectBtn").onclick=()=>{if(!editing||!selectedId)return;connectMode=!connectMode;pendingConnect=connectMode?selectedId:null;$("connectBtn").textContent=connectMode?"× Cancel connect":"⌁ Connect";$("connectBtn").classList.toggle("primary",connectMode);$("tree").style.cursor=connectMode?"crosshair":""}; $("photoBtn").onclick=()=>$("photoInput").click(); $("photoInput").onchange=async e=>{const f=e.target.files?.[0];if(!f||!selectedId)return;try{const p=byId(selectedId);p.photoDataUrl=await readPhoto(f);record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Updated photo for "+name(p));draw($("search").value);show(p)}catch(err){alert("Unable to read this image.")}}; $("photoRemove").onclick=()=>{if(!selectedId)return;const p=byId(selectedId);delete p.photoDataUrl;delete p.photoUrl;record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Removed photo from "+name(p));draw($("search").value);show(p)}; $("themeBtn").onclick=()=>setTheme(document.documentElement.dataset.theme==="light"?"dark":"light");initTheme();$("editBtn").onclick=()=>setEditMode(!editing);$("finishBtn").onclick=finishEditing;$("adminBtn").onclick=unlockAdmin;$("addBtn").onclick=addPerson;$("applyPerson").onclick=applyPerson;$("resetPerson").onclick=()=>{if(!selectedId)return;let p=byId(selectedId),live=liveData.persons.find(x=>x.id===selectedId);if(live){Object.assign(p,deep(live));record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Reset "+name(p))}};$("treeBtn").onclick=()=>{layoutMode="tree";draw($("search").value)};$("networkBtn").onclick=()=>{layoutMode="network";draw($("search").value)};$("fitBtn").onclick=()=>cy?.fit(undefined,90);$("search").oninput=e=>draw(e.target.value);$("clearSearch").onclick=()=>{$("search").value="";draw()};$("panelBtn").onclick=()=>document.querySelector(".side").classList.toggle("open");$("personTab").onclick=()=>{$("personTab").classList.add("active");$("changesTab").classList.remove("active");$("personPane").classList.remove("hidden");$("changePane").classList.add("hidden")};$("changesTab").onclick=()=>{$("changesTab").classList.add("active");$("personTab").classList.remove("active");$("personPane").classList.add("hidden");$("changePane").classList.remove("hidden")};$("submitChanges").onclick=()=>{if(adminMode)adminSave();else submitRequest(false)};$("discardChanges").onclick=()=>{if(confirm("Discard all local changes?")){data=deep(liveData);changes=[];draftClear();draw();renderChanges()}};$("modalClose").onclick=closeModal;$("modalCancel").onclick=closeModal;
