@@ -195,6 +195,7 @@ describe("living / deceased without exact dates", () => {
     const q = await page.evaluate((id) => byId(id), id);
     assert.equal(q.lifeStatus, "deceased"); assert.ok(!q.dateOfDeath);
     assert.match(await page.evaluate((id) => cy.getElementById(id).data("label"), id), /1980–\?/);
+    assert.doesNotMatch(await page.evaluate((id) => cy.getElementById(id).data("label"), id), /deceased/i, "the box does not spell out the status; the dashed border shows it");
     // back to living: the death details are cleared
     await page.fill("#deathPlace", "Somewhere");
     await page.selectOption("#lifeStatus", "living"); await page.click("#applyPerson"); await sleep(300);

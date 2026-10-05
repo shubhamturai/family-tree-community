@@ -109,6 +109,15 @@ describe("public tree (desktop)", () => {
     await page.click("#adminBtn"); await sleep(200);
     assert.equal(await page.getAttribute("#adminPw", "type"), "password", "the admin password is masked");
     assert.equal(await page.evaluate(() => document.activeElement.id), "adminPw", "focus moves into the dialog");
+    await page.fill("#adminPw", "visible-check-1");
+    await page.click("#adminPwToggle");
+    assert.equal(await page.getAttribute("#adminPw", "type"), "text", "Show reveals the password");
+    assert.equal(await page.innerText("#adminPwToggle"), "Hide");
+    assert.equal(await page.getAttribute("#adminPwToggle", "aria-label"), "Hide password");
+    await page.click("#adminPwToggle");
+    assert.equal(await page.getAttribute("#adminPw", "type"), "password", "Hide masks it again");
+    assert.equal(await page.inputValue("#adminPw"), "visible-check-1", "what was typed is kept");
+    await page.fill("#adminPw", "");
     await page.keyboard.press("Escape"); await sleep(200);
     assert.equal(await page.isVisible("#modal"), false);
     assert.equal(await page.evaluate(() => document.activeElement.id), "adminBtn", "focus returns to the button");
