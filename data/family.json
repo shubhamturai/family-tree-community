@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "lastUpdated": "2026-10-05T06:22:09.753Z",
+  "lastUpdated": "2026-10-05T07:22:15.783Z",
   "persons": [
     {
       "id": "P000001",
@@ -208,12 +208,12 @@
       "middleName": "",
       "familyName": "Turai",
       "displayName": "Dattatri Turai",
-      "nickname": null,
-      "maidenName": null,
+      "nickname": "",
+      "maidenName": "",
       "gender": "male",
       "dateOfBirth": null,
       "dateOfDeath": null,
-      "lifeStatus": "unknown",
+      "lifeStatus": "deceased",
       "birthPlace": "",
       "birthRegion": "",
       "birthCountry": "",
@@ -221,8 +221,8 @@
       "currentLocation": "",
       "occupation": "",
       "notes": "",
-      "maritalStatus": "unknown",
-      "isMarried": false,
+      "maritalStatus": "married",
+      "isMarried": true,
       "recordStatus": "active"
     },
     {
@@ -231,12 +231,12 @@
       "middleName": "",
       "familyName": "Turai",
       "displayName": "Moti Bai Turai",
-      "nickname": null,
-      "maidenName": null,
+      "nickname": "",
+      "maidenName": "",
       "gender": "female",
       "dateOfBirth": null,
       "dateOfDeath": null,
-      "lifeStatus": "unknown",
+      "lifeStatus": "deceased",
       "birthPlace": "",
       "birthRegion": "",
       "birthCountry": "",
@@ -385,6 +385,52 @@
       "maritalStatus": "unknown",
       "isMarried": false,
       "recordStatus": "active"
+    },
+    {
+      "id": "P000018",
+      "firstName": "Susheel",
+      "middleName": "",
+      "familyName": "Turai",
+      "displayName": "Susheel Turai",
+      "nickname": null,
+      "maidenName": null,
+      "gender": "male",
+      "dateOfBirth": "1995-06-09",
+      "dateOfDeath": null,
+      "lifeStatus": "living",
+      "birthPlace": "",
+      "birthRegion": "",
+      "birthCountry": "",
+      "deathPlace": "",
+      "currentLocation": "",
+      "occupation": "",
+      "notes": "",
+      "maritalStatus": "unknown",
+      "isMarried": false,
+      "recordStatus": "active"
+    },
+    {
+      "id": "P000019",
+      "firstName": "Karthik",
+      "middleName": "",
+      "familyName": "Turai",
+      "displayName": "Karthik Turai",
+      "nickname": null,
+      "maidenName": null,
+      "gender": "male",
+      "dateOfBirth": "2000-01-22",
+      "dateOfDeath": null,
+      "lifeStatus": "living",
+      "birthPlace": "",
+      "birthRegion": "",
+      "birthCountry": "",
+      "deathPlace": "",
+      "currentLocation": "",
+      "occupation": "",
+      "notes": "",
+      "maritalStatus": "unknown",
+      "isMarried": false,
+      "recordStatus": "active"
     }
   ],
   "relationships": {
@@ -506,6 +552,30 @@
       {
         "parentId": "P000014",
         "childId": "P000017",
+        "role": "parent",
+        "order": 2
+      },
+      {
+        "parentId": "P000012",
+        "childId": "P000018",
+        "role": "father",
+        "order": 1
+      },
+      {
+        "parentId": "P000012",
+        "childId": "P000019",
+        "role": "father",
+        "order": 2
+      },
+      {
+        "parentId": "P000013",
+        "childId": "P000018",
+        "role": "parent",
+        "order": 1
+      },
+      {
+        "parentId": "P000013",
+        "childId": "P000019",
         "role": "parent",
         "order": 2
       }
