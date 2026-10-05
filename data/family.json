@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "lastUpdated": "2026-10-05T07:22:15.783Z",
+  "lastUpdated": "2026-10-05T07:22:30.824Z",
   "persons": [
     {
       "id": "P000001",
@@ -232,7 +232,7 @@
       "familyName": "Turai",
       "displayName": "Moti Bai Turai",
       "nickname": "",
-      "maidenName": "",
+      "maidenName": "Diwan",
       "gender": "female",
       "dateOfBirth": null,
       "dateOfDeath": null,
