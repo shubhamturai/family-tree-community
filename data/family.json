@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "lastUpdated": "2026-10-05T08:13:23.321Z",
+  "lastUpdated": "2026-10-05T08:16:11.341Z",
   "persons": [
     {
       "id": "P000001",
@@ -438,8 +438,8 @@
       "middleName": "",
       "familyName": "Turai",
       "displayName": "Kalyani Turai",
-      "nickname": null,
-      "maidenName": null,
+      "nickname": "",
+      "maidenName": "Baradi",
       "gender": "female",
       "dateOfBirth": null,
       "dateOfDeath": null,
@@ -451,8 +451,8 @@
       "currentLocation": "",
       "occupation": "",
       "notes": "",
-      "maritalStatus": "unknown",
-      "isMarried": false,
+      "maritalStatus": "married",
+      "isMarried": true,
       "recordStatus": "active"
     }
   ],
