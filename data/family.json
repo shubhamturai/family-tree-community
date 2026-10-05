@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "lastUpdated": "2026-10-05T05:49:45.748Z",
+  "lastUpdated": "2026-10-05T06:00:40.898Z",
   "persons": [
     {
       "id": "P000001",
@@ -201,6 +201,144 @@
       "maritalStatus": "unknown",
       "isMarried": false,
       "recordStatus": "active"
+    },
+    {
+      "id": "P000010",
+      "firstName": "Dattatri",
+      "middleName": "",
+      "familyName": "Turai",
+      "displayName": "Dattatri Turai",
+      "nickname": null,
+      "maidenName": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "dateOfDeath": null,
+      "lifeStatus": "unknown",
+      "birthPlace": "",
+      "birthRegion": "",
+      "birthCountry": "",
+      "deathPlace": "",
+      "currentLocation": "",
+      "occupation": "",
+      "notes": "",
+      "maritalStatus": "unknown",
+      "isMarried": false,
+      "recordStatus": "active"
+    },
+    {
+      "id": "P000011",
+      "firstName": "Moti Bai",
+      "middleName": "",
+      "familyName": "Turai",
+      "displayName": "Moti Bai Turai",
+      "nickname": null,
+      "maidenName": null,
+      "gender": "female",
+      "dateOfBirth": null,
+      "dateOfDeath": null,
+      "lifeStatus": "unknown",
+      "birthPlace": "",
+      "birthRegion": "",
+      "birthCountry": "",
+      "deathPlace": "",
+      "currentLocation": "",
+      "occupation": "",
+      "notes": "",
+      "maritalStatus": "unknown",
+      "isMarried": false,
+      "recordStatus": "active"
+    },
+    {
+      "id": "P000012",
+      "firstName": "Suresh",
+      "middleName": "",
+      "familyName": "Turai",
+      "displayName": "Suresh Turai",
+      "nickname": null,
+      "maidenName": null,
+      "gender": "male",
+      "dateOfBirth": null,
+      "dateOfDeath": null,
+      "lifeStatus": "unknown",
+      "birthPlace": "",
+      "birthRegion": "",
+      "birthCountry": "",
+      "deathPlace": "",
+      "currentLocation": "",
+      "occupation": "",
+      "notes": "",
+      "maritalStatus": "unknown",
+      "isMarried": false,
+      "recordStatus": "active"
+    },
+    {
+      "id": "P000013",
+      "firstName": "Sharadha",
+      "middleName": "",
+      "familyName": "Turai",
+      "displayName": "Sharadha Turai",
+      "nickname": null,
+      "maidenName": null,
+      "gender": "female",
+      "dateOfBirth": null,
+      "dateOfDeath": null,
+      "lifeStatus": "unknown",
+      "birthPlace": "",
+      "birthRegion": "",
+      "birthCountry": "",
+      "deathPlace": "",
+      "currentLocation": "",
+      "occupation": "",
+      "notes": "",
+      "maritalStatus": "unknown",
+      "isMarried": false,
+      "recordStatus": "active"
+    },
+    {
+      "id": "P000014",
+      "firstName": "Rakhee",
+      "middleName": "",
+      "familyName": "Pawar",
+      "displayName": "Rakhee Pawar",
+      "nickname": "",
+      "maidenName": "Turai",
+      "gender": "female",
+      "dateOfBirth": "1990-08-06",
+      "dateOfDeath": null,
+      "lifeStatus": "unknown",
+      "birthPlace": "Hyderabad",
+      "birthRegion": "",
+      "birthCountry": "",
+      "deathPlace": "",
+      "currentLocation": "",
+      "occupation": "",
+      "notes": "",
+      "maritalStatus": "married",
+      "isMarried": true,
+      "recordStatus": "active"
+    },
+    {
+      "id": "P000015",
+      "firstName": "Ashok",
+      "middleName": "",
+      "familyName": "Pawar",
+      "displayName": "Ashok Pawar",
+      "nickname": null,
+      "maidenName": null,
+      "gender": "male",
+      "dateOfBirth": "1987-04-05",
+      "dateOfDeath": null,
+      "lifeStatus": "unknown",
+      "birthPlace": "",
+      "birthRegion": "",
+      "birthCountry": "",
+      "deathPlace": "",
+      "currentLocation": "",
+      "occupation": "",
+      "notes": "",
+      "maritalStatus": "unknown",
+      "isMarried": false,
+      "recordStatus": "active"
     }
   ],
   "relationships": {
@@ -264,6 +402,42 @@
         "childId": "P000009",
         "role": "parent",
         "order": 1
+      },
+      {
+        "parentId": "P000010",
+        "childId": "P000001",
+        "role": "father",
+        "order": 1
+      },
+      {
+        "parentId": "P000011",
+        "childId": "P000001",
+        "role": "parent",
+        "order": 1
+      },
+      {
+        "parentId": "P000010",
+        "childId": "P000012",
+        "role": "father",
+        "order": 2
+      },
+      {
+        "parentId": "P000011",
+        "childId": "P000012",
+        "role": "parent",
+        "order": 2
+      },
+      {
+        "parentId": "P000001",
+        "childId": "P000014",
+        "role": "father",
+        "order": 2
+      },
+      {
+        "parentId": "P000002",
+        "childId": "P000014",
+        "role": "mother",
+        "order": 2
       }
     ],
     "spouses": [
@@ -279,6 +453,33 @@
         "personBId": "P000004",
         "order": 1,
         "marriageDate": null,
+        "divorceDate": null
+      },
+      {
+        "personAId": "P000010",
+        "personBId": "P000011",
+        "order": 1,
+        "marriageDate": null,
+        "marriagePlace": "",
+        "status": "married",
+        "divorceDate": null
+      },
+      {
+        "personAId": "P000012",
+        "personBId": "P000013",
+        "order": 1,
+        "marriageDate": null,
+        "marriagePlace": "",
+        "status": "married",
+        "divorceDate": null
+      },
+      {
+        "personAId": "P000014",
+        "personBId": "P000015",
+        "order": 1,
+        "marriageDate": "2015-05-10",
+        "marriagePlace": "",
+        "status": "married",
         "divorceDate": null
       }
     ]
