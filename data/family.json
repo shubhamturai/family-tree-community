@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "lastUpdated": "2026-10-05T05:48:25.966Z",
+  "lastUpdated": "2026-10-05T05:49:45.748Z",
   "persons": [
     {
       "id": "P000001",
@@ -257,6 +257,12 @@
         "parentId": "P000004",
         "childId": "P000009",
         "role": "mother",
+        "order": 1
+      },
+      {
+        "parentId": "P000003",
+        "childId": "P000009",
+        "role": "parent",
         "order": 1
       }
     ],
