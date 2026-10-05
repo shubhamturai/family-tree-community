@@ -1,5 +1,5 @@
 import { HttpError, clean } from "./util.js";
-import { validId, validDate } from "./validate.js";
+import { validId, validDate, dateBefore, lifeStatusOf } from "./validate.js";
 
 const UPDATABLE = [
   "firstName", "middleName", "familyName", "displayName", "nickname", "maidenName", "gender", "dateOfBirth", "dateOfDeath",
@@ -30,7 +30,7 @@ function applyOne(d, type, x) {
     d.persons.push({
       id, firstName: clean(x.firstName) || display, middleName: clean(x.middleName), familyName: clean(x.familyName), displayName: display,
       nickname: clean(x.nickname), maidenName: clean(x.maidenName), gender: clean(x.gender), dateOfBirth: clean(x.dateOfBirth), dateOfDeath: clean(x.dateOfDeath),
-      lifeStatus: x.dateOfDeath ? "deceased" : clean(x.lifeStatus) || "unknown", birthPlace: clean(x.birthPlace), birthRegion: clean(x.birthRegion),
+      lifeStatus: x.dateOfDeath ? "deceased" : lifeStatusOf(x.lifeStatus), birthPlace: clean(x.birthPlace), birthRegion: clean(x.birthRegion),
       birthCountry: clean(x.birthCountry), deathPlace: clean(x.deathPlace), currentLocation: clean(x.currentLocation), occupation: clean(x.occupation) || "",
       notes: clean(x.notes) || "", maritalStatus: clean(x.maritalStatus) || "unknown", isMarried: Boolean(x.isMarried), recordStatus: "active",
     });
@@ -38,8 +38,8 @@ function applyOne(d, type, x) {
     const q = validId(x.personId) && person(x.personId);
     if (!q || q.recordStatus === "deleted") throw new HttpError(409, "Unknown or archived person ID");
     for (const k of UPDATABLE) if (k in x) q[k] = clean(x[k]);
-    if (q.dateOfDeath && q.dateOfBirth && q.dateOfDeath < q.dateOfBirth) throw new HttpError(400, "Death date cannot precede birth date");
-    q.lifeStatus = q.dateOfDeath ? "deceased" : clean(x.lifeStatus) || q.lifeStatus || "unknown";
+    if (dateBefore(q.dateOfDeath, q.dateOfBirth)) throw new HttpError(400, "Death date cannot precede birth date");
+    q.lifeStatus = q.dateOfDeath ? "deceased" : lifeStatusOf("lifeStatus" in x ? x.lifeStatus : q.lifeStatus);
     if ("isMarried" in x) q.isMarried = Boolean(x.isMarried);
   } else if (type === "DELETE_PERSON") {
     const q = validId(x.personId) && person(x.personId);
@@ -109,7 +109,7 @@ export function integrityIssues(d) {
     else if (ids.has(p.id)) issues.push("Duplicate person ID " + p.id);
     ids.add(p.id);
     for (const k of ["dateOfBirth", "dateOfDeath"]) if (p[k] && !validDate(p[k])) issues.push(p.id + ": " + k + " is not a valid date");
-    if (p.dateOfBirth && p.dateOfDeath && p.dateOfDeath < p.dateOfBirth) issues.push(p.id + ": death precedes birth");
+    if (dateBefore(p.dateOfDeath, p.dateOfBirth)) issues.push(p.id + ": death precedes birth");
   }
   const seenPc = new Set(), children = new Map();
   for (const r of d.relationships.parentChild) {

@@ -42,3 +42,32 @@ test("invalid references are refused", () => {
     { type: "ADD_SPOUSE", payload: { personAId: "P000001", personBId: "P000002" } },
   ]) assert.throws(() => applyProposal(g, { operation: "BATCH_UPDATE", payload: { changes: [change] } }));
 });
+
+test("dates may be partial (year or month only) and life status is tracked without any date", async () => {
+  const { validDate, dateBefore, samplePerson } = await import("../../backend/src/validate.js");
+  for (const ok of ["1950", "1950-07", "1950-07-04"]) assert.equal(validDate(ok), true, ok);
+  for (const bad of ["", "50", "1950-13", "1950-02-30", "1950-7", "07/1950", "abcd"]) assert.equal(validDate(bad), false, bad);
+  assert.equal(dateBefore("1949", "1950-06-01"), true);
+  assert.equal(dateBefore("1950", "1950-06-01"), false, "same year: cannot tell, so it is not an error");
+  assert.equal(dateBefore("1950-02", "1950-01-20"), false);
+  assert.equal(dateBefore("1950-01", "1950-02-20"), true);
+  assert.throws(() => samplePerson({ dateOfBirth: "1950-06-01", dateOfDeath: "1949" }), /cannot precede/);
+  assert.doesNotThrow(() => samplePerson({ dateOfBirth: "1950-06-01", dateOfDeath: "1950" }));
+  assert.equal(samplePerson({ lifeStatus: "alive" }).lifeStatus, "living");
+  assert.throws(() => samplePerson({ lifeStatus: "zombie" }), /lifeStatus/);
+
+  const g = sampleGraph();
+  applyProposal(g, { operation: "BATCH_UPDATE", payload: { changes: [
+    { type: "ADD_PERSON", payload: { id: "P000004", displayName: "Old One", lifeStatus: "deceased" } },
+    { type: "ADD_PERSON", payload: { id: "P000005", displayName: "Young One", dateOfBirth: "2001", lifeStatus: "living" } },
+    { type: "UPDATE_PERSON", payload: { personId: "P000003", lifeStatus: "living", dateOfDeath: null } },
+  ] } });
+  const by = (id) => g.persons.find((p) => p.id === id);
+  assert.equal(by("P000004").lifeStatus, "deceased", "deceased with no date at all is allowed");
+  assert.ok(!by("P000004").dateOfDeath);
+  assert.equal(by("P000005").lifeStatus, "living");
+  assert.equal(by("P000003").lifeStatus, "living");
+  assert.deepEqual(integrityIssues(g), []);
+  applyProposal(g, { operation: "BATCH_UPDATE", payload: { changes: [{ type: "UPDATE_PERSON", payload: { personId: "P000005", dateOfDeath: "2020" } }] } });
+  assert.equal(by("P000005").lifeStatus, "deceased", "a death date implies deceased");
+});

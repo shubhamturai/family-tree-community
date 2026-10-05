@@ -80,7 +80,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 <section class="canvas" aria-label="Family tree">
   <div class="toolbar">
     <div class="search">⌕<input id="search" placeholder="Search family…"><button id="clearSearch" class="btn small">Clear</button></div>
-    <div class="actions"><button id="undoBtn" class="btn small hidden" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶ Undo</button><button id="redoBtn" class="btn small hidden" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>↷ Redo</button><button id="treeBtn" class="btn small primary" title="Show the generational tree">🌳 Tree</button><button id="tidyBtn" class="btn small" title="Re-arrange everyone neatly">⌗ Tidy</button><button id="networkBtn" class="btn small">◈ Network</button><button id="fitBtn" class="btn small">Fit</button><button id="addBtn" class="btn small green hidden">＋ Person</button><button id="lineageBtn" class="btn small" title="Dim everyone except the selected person's direct family line" aria-pressed="true">◎ Family line</button><button id="panelBtn" class="btn small openPanel" aria-controls="sidePanel">☰ Panel</button></div>
+    <div class="actions"><button id="undoBtn" class="btn small hidden" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶ Undo</button><button id="redoBtn" class="btn small hidden" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>↷ Redo</button><button id="treeBtn" class="btn small primary" title="Show the generational tree">🌳 Tree</button><button id="tidyBtn" class="btn small" title="Re-arrange everyone neatly">⌗ Tidy</button><button id="collapseBtn" class="btn small" title="Fold every branch down to its parents, or open them all again">⇲ Collapse all</button><button id="focusBtn" class="btn small primary hidden" title="Show the whole tree again">✕ Exit focus</button><button id="networkBtn" class="btn small">◈ Network</button><button id="fitBtn" class="btn small">Fit</button><button id="addBtn" class="btn small green hidden">＋ Person</button><button id="lineageBtn" class="btn small" title="Dim everyone except the selected person's direct family line" aria-pressed="true">◎ Family line</button><button id="panelBtn" class="btn small openPanel" aria-controls="sidePanel">☰ Panel</button></div>
   </div>
   <div id="tree"></div>
   <div class="tip">Hover a person and click a <b>+</b> to add a parent, child, spouse or sibling · drag a <b>+</b> onto someone to connect them · Ctrl+Z undoes</div>
@@ -101,8 +101,8 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
           <label>First name<input id="first"></label><label>Middle name<input id="middle"></label><label>Family name<input id="family"></label><label>Display name<input id="display"></label>
           <label>Gender<select id="gender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option><option value="unknown">Unknown</option></select></label><label>Marital status<select id="maritalStatus"><option value="unknown">Unknown</option><option value="single">Single</option><option value="married">Married</option><option value="divorced">Divorced</option><option value="widowed">Widowed</option></select></label>
           <label>Nickname<input id="nick"></label><label>Maiden/birth surname<input id="maiden"></label>
-          <label>DOB · DD/MM/YYYY<input id="dob" maxlength="10" placeholder="DD/MM/YYYY"></label><label>Death · DD/MM/YYYY<input id="dod" maxlength="10" placeholder="DD/MM/YYYY"></label>
-          <label>Birth place<input id="birthPlace"></label><label>Birth region/state<input id="birthRegion"></label><label>Birth country<input id="birthCountry"></label><label>Death place<input id="deathPlace"></label>
+          <label>Born <span class="hint">· date, month or just year</span><input id="dob" maxlength="10" placeholder="DD/MM/YYYY · MM/YYYY · YYYY"></label><label>Living or deceased?<select id="lifeStatus"><option value="unknown">Not sure</option><option value="living">Living</option><option value="deceased">Deceased</option></select></label><label id="dodWrap" class="hidden">Died <span class="hint">· optional, year is fine</span><input id="dod" maxlength="10" placeholder="DD/MM/YYYY · MM/YYYY · YYYY"></label>
+          <label>Birth place<input id="birthPlace"></label><label>Birth region/state<input id="birthRegion"></label><label>Birth country<input id="birthCountry"></label><label id="deathPlaceWrap" class="hidden">Death place<input id="deathPlace"></label>
           <label>Current city/region<input id="location"></label><label>Occupation<input id="occupation"></label>
           <label style="grid-column:1/-1">Notes<textarea id="notes" rows="4"></textarea></label>
         </div>
@@ -139,8 +139,13 @@ function toast(msg,kind="warn",ms=7000,action){
   if(ms)setTimeout(()=>t.remove(),ms)
 }
 function deep(v){return JSON.parse(JSON.stringify(v))}
-function fmtDate(s){if(!s)return"";let p=String(s).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:s}
-function parseDate(s){s=String(s||"").trim();if(!s)return"";let m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(!m)return null;let d=+m[1],mo=+m[2],y=+m[3],dt=new Date(Date.UTC(y,mo-1,d));return dt.getUTCFullYear()===y&&dt.getUTCMonth()===mo-1&&dt.getUTCDate()===d?y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0"):null}
+function fmtDate(s){if(!s)return"";let p=String(s).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:p.length===2?p[1]+"/"+p[0]:s}
+/* Families rarely know exact days, so dates may be partial: DD/MM/YYYY, MM/YYYY or just YYYY (stored as YYYY-MM-DD, YYYY-MM or YYYY). "" = empty, null = invalid. */
+function parseDate(s){s=String(s||"").trim();if(!s)return"";let q=s.split("/");if(q.length>3||q.some(x=>!/^\d+$/.test(x)))return null;let y=+q[q.length-1],mo=q.length>1?+q[q.length-2]:1,d=q.length>2?+q[0]:1;if(q[q.length-1].length!==4||y<1000)return null;let dt=new Date(Date.UTC(y,mo-1,d));if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==d)return null;return String(y)+(q.length>1?"-"+String(mo).padStart(2,"0"):"")+(q.length>2?"-"+String(d).padStart(2,"0"):"")}
+const dateBefore=(a,b)=>{if(!a||!b)return false;const n=Math.min(a.length,b.length);return a.slice(0,n)<b.slice(0,n)};
+const DATE_HINT="DD/MM/YYYY, MM/YYYY or YYYY";
+const lifeOf=p=>{const t=String(p&&p.lifeStatus||"").toLowerCase();return p&&p.dateOfDeath?"deceased":t==="alive"?"living":t==="living"||t==="deceased"?t:"unknown"};
+const LIFE_LABEL={unknown:"Not sure if living",living:"Living",deceased:"Deceased"};
 function parentEdges(){return (data.relationships.parentChild||[]).filter(r=>active(byId(r.parentId))&&active(byId(r.childId)))}
 function spouseEdges(){return (data.relationships.spouses||[]).filter(r=>active(byId(r.personAId))&&active(byId(r.personBId)))}
 function marriageStatus(p){if(p?.maritalStatus)return p.maritalStatus;let rs=spouseEdges().filter(r=>r.personAId===p?.id||r.personBId===p?.id);if(!rs.length)return "single";return rs.some(r=>(r.status||"married")==="married"&&!r.divorceDate)?"married":rs.some(r=>r.status==="divorced"||r.divorceDate)?"divorced":"unknown"}
@@ -176,7 +181,7 @@ function updateUndoUi(){const u=$("undoBtn"),r=$("redoBtn");if(!u)return;u.disab
 function renderChanges(){let n=changes.length;$("changeCount").textContent=n?"("+n+")":"";$("changeStatus").textContent=n?(adminMode?n+" local change(s). Admin save will apply them to the published graph.":n+" local change(s). The published tree is unchanged."):(adminMode?"No pending changes.":"No pending changes.");$("changesList").innerHTML=n?changes.slice().reverse().map(c=>'<div class="change"><div class="dot">✦</div><div><b>'+esc(c.label)+'</b><small>'+esc(c.type)+' · '+new Date(c.at).toLocaleTimeString()+'</small></div></div>').join(""):'<div class="card muted">No changes yet.</div>'}
 function setEditMode(v){editing=v;document.body.classList.toggle("editing",v);$("modeChip").textContent=v?(adminMode?"Admin edit":"Edit draft"):"View";$("modeChip").className="chip "+(v?(adminMode?"admin":"edit"):"");$("editBtn").textContent=v?"✓ Editing":"✎ Edit tree";$("finishBtn").classList.toggle("hidden",!v);$("finishBtn").textContent=adminMode?"Save changes":"Finish editing";$("submitChanges").textContent=adminMode?"Save changes":"Finish & submit request";$("addBtn").classList.toggle("hidden",!v);$("undoBtn").classList.toggle("hidden",!v);$("redoBtn").classList.toggle("hidden",!v);$("applyPerson").classList.toggle("hidden",!v);$("resetPerson").classList.toggle("hidden",!v);$("fieldStatus").textContent=v?(adminMode?"Admin changes are queued for direct application.":"Changes stay local until you finish editing."):"View only.";if(selectedId)show(byId(selectedId));renderChanges();}
 function photoSrc(p){return p?.photoDataUrl||p?.photoUrl||""} function photoMarkup(p,cls=""){const src=photoSrc(p);return src?'<img class="'+cls+'" src="'+esc(src)+'" alt="" loading="lazy">' : ""}
-function show(p){if(!p)return;selectedId=p.id;cy?.nodes().unselect();cy?.getElementById(p.id).select();$("empty").classList.add("hidden");$("profile").classList.remove("hidden");applyLineage();$("pname").textContent=name(p);$("pid").textContent=p.id+" · "+(p.dateOfDeath?"Deceased":(p.lifeStatus||"Unknown"));$("avatar").innerHTML=photoSrc(p)?photoMarkup(p):esc((name(p)||"?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase()); $("photoMini").innerHTML=photoSrc(p)?photoMarkup(p):'<div class="muted">No photo attached</div>'; $("photoRemove").classList.toggle("hidden",!photoSrc(p));$("maritalSummary").innerHTML=marriageHtml(p);$("first").value=p.firstName||"";$("middle").value=p.middleName||"";$("family").value=p.familyName||"";$("display").value=p.displayName||"";$("gender").value=p.gender||"";$("maritalStatus").value=marriageStatus(p);$("nick").value=p.nickname||"";$("maiden").value=p.maidenName||"";$("dob").value=fmtDate(p.dateOfBirth);$("dod").value=fmtDate(p.dateOfDeath);$("birthPlace").value=p.birthPlace||"";$("birthRegion").value=p.birthRegion||"";$("birthCountry").value=p.birthCountry||"";$("deathPlace").value=p.deathPlace||"";$("location").value=p.currentLocation||"";$("occupation").value=p.occupation||"";$("notes").value=p.notes||"";renderActions();renderRelations(p)}
+function show(p){if(!p)return;ensureVisible(p.id);selectedId=p.id;cy?.nodes().unselect();cy?.getElementById(p.id).select();$("empty").classList.add("hidden");$("profile").classList.remove("hidden");applyLineage();$("pname").textContent=name(p);$("pid").textContent=p.id+" · "+LIFE_LABEL[lifeOf(p)];$("avatar").innerHTML=photoSrc(p)?photoMarkup(p):esc((name(p)||"?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase()); $("photoMini").innerHTML=photoSrc(p)?photoMarkup(p):'<div class="muted">No photo attached</div>'; $("photoRemove").classList.toggle("hidden",!photoSrc(p));$("maritalSummary").innerHTML=marriageHtml(p);$("first").value=p.firstName||"";$("middle").value=p.middleName||"";$("family").value=p.familyName||"";$("display").value=p.displayName||"";$("gender").value=p.gender||"";$("maritalStatus").value=marriageStatus(p);$("nick").value=p.nickname||"";$("maiden").value=p.maidenName||"";$("dob").value=fmtDate(p.dateOfBirth);$("dod").value=fmtDate(p.dateOfDeath);$("lifeStatus").value=lifeOf(p);syncLifeUi();$("birthPlace").value=p.birthPlace||"";$("birthRegion").value=p.birthRegion||"";$("birthCountry").value=p.birthCountry||"";$("deathPlace").value=p.deathPlace||"";$("location").value=p.currentLocation||"";$("occupation").value=p.occupation||"";$("notes").value=p.notes||"";renderActions();renderRelations(p)}
 
 /* ===== Draw.io-style editing: "+" handles on the canvas, quick-add popover, drag-to-connect ===== */
 let handles=null;
@@ -206,8 +211,9 @@ function linkSpouses(aId,bId,o={}){
   record("ADD_SPOUSE",rel,"Added spouse relationship")
 }
 function newPersonRecord(f){
+  const life=f.life==="living"||f.life==="deceased"?f.life:"unknown";
   const id=nextId(),display=f.display||[f.first,f.family].filter(Boolean).join(" ");
-  const person={id,firstName:f.first||"",middleName:"",familyName:f.family||"",displayName:display,gender:f.gender||"",maritalStatus:"unknown",isMarried:false,dateOfBirth:f.dob||null,dateOfDeath:null,lifeStatus:"unknown",birthPlace:"",birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"};
+  const person={id,firstName:f.first||"",middleName:"",familyName:f.family||"",displayName:display,gender:f.gender||"",maritalStatus:"unknown",isMarried:false,dateOfBirth:f.dob||null,dateOfDeath:f.dod||null,lifeStatus:f.dod?"deceased":life,birthPlace:"",birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"};
   data.persons.push(person);record("ADD_PERSON",{person:deep(person)},"Added "+display);return id
 }
 /* Connect two existing people the way a handle on `srcId` points: parent ↑, child ↓, spouse →, sibling ←. */
@@ -225,6 +231,8 @@ function connectPeople(kind,srcId,tgtId){
 }
 const KIND_PHRASE={parent:"a parent of",child:"a child of",spouse:"a spouse of",sibling:"a sibling of"};
 function afterEdit(newId,msg){
+  if(focusId&&!lineageOf(focusId).has(newId))focusId=null;
+  if(unhide(newId))layoutPos={};
   draw($("search").value);
   const p=byId(newId);if(p){show(p);const n=cy&&cy.getElementById(newId);if(n&&n.length){n.select();revealNode(newId)}}
   toast(msg,"ok",6000,{label:"Undo",fn:()=>{undo()}})
@@ -248,7 +256,7 @@ function openQuickAdd(kind,srcId,anchor){
     '<p class="hint" style="margin:0">'+esc(name(src))+' has no parents in the tree yet, so there is nobody to share with a new sibling.</p><div class="actions row" style="margin:0"><button class="btn small" id="qaCancel">Cancel</button><button class="btn small primary" id="qaParentFirst">＋ Add a parent first</button></div>'
     :'<div class="grid2"><label>First name<input id="qaFirst" autocomplete="off"></label><label>Family name<input id="qaFamily" autocomplete="off" value="'+esc(fam)+'"></label>'
       +'<label>Gender<select id="qaGender"><option value="">Not specified</option><option value="male"'+(g0==="male"?" selected":"")+'>Male</option><option value="female"'+(g0==="female"?" selected":"")+'>Female</option><option value="other">Other</option></select></label>'
-      +'<label>Born<input id="qaDob" maxlength="10" placeholder="DD/MM/YYYY" autocomplete="off"></label>'
+      +'<label>Born<input id="qaDob" maxlength="10" placeholder="DD/MM/YYYY or year" autocomplete="off"></label><label>Living?<select id="qaLife"><option value="unknown">Not sure</option><option value="living">Living</option><option value="deceased">Deceased</option></select></label><label id="qaDodWrap" class="hidden">Died<input id="qaDod" maxlength="10" placeholder="optional · year is fine" autocomplete="off"></label>'
       +((kind==="parent"||kind==="child")?'<label style="grid-column:1/-1">Relationship<select id="qaRole">'+roles+'</select></label>':'')
       +(kind==="spouse"?'<label>Married<input id="qaMarried" maxlength="10" placeholder="DD/MM/YYYY" autocomplete="off"></label><label>Status<select id="qaStatus"><option value="married">Married</option><option value="divorced">Divorced</option><option value="widowed">Widowed</option></select></label>':'')
       +'</div><div class="actions row" style="margin:0"><button class="btn small" id="qaCancel">Cancel</button><button class="btn small primary" id="qaAdd">Add '+esc(kind==="sibling"?"sibling":kind)+' <kbd style="opacity:.7">↵</kbd></button></div>'
@@ -262,13 +270,15 @@ function openQuickAdd(kind,srcId,anchor){
   const submit=()=>{
     const first=$("qaFirst").value.trim(),family=$("qaFamily").value.trim(),display=[first,family].filter(Boolean).join(" ");
     if(!display){toast("Enter a name first.");$("qaFirst").focus();return}
-    const dob=parseDate($("qaDob").value);if($("qaDob").value.trim()&&!dob){toast("Born must be DD/MM/YYYY.");$("qaDob").focus();return}
+    const dob=parseDate($("qaDob").value);if($("qaDob").value.trim()&&!dob){toast("Born must be "+DATE_HINT+".");$("qaDob").focus();return}
+    const life=$("qaLife").value,dod=life==="deceased"?parseDate($("qaDod").value):"";if(life==="deceased"&&$("qaDod").value.trim()&&!dod){toast("Died must be "+DATE_HINT+".");$("qaDod").focus();return}
+    if(dateBefore(dod,dob)){toast("Death date cannot be before the birth date.");$("qaDod").focus();return}
     const married=$("qaMarried")?parseDate($("qaMarried").value):null;if($("qaMarried")&&$("qaMarried").value.trim()&&!married){toast("Married must be DD/MM/YYYY.");$("qaMarried").focus();return}
     try{
       const gender=$("qaGender").value,role=$("qaRole")?$("qaRole").value:"";
       let id;
       undoGroup(()=>{
-        id=newPersonRecord({first,family,display,gender,dob});
+        id=newPersonRecord({first,family,display,gender,dob,life,dod});
         if(kind==="parent")linkParentChild(id,srcId,role||roleFor(gender),1);
         else if(kind==="child")linkParentChild(srcId,id,role||roleFor(src.gender),nextChildOrder(srcId));
         else if(kind==="spouse")linkSpouses(srcId,id,{marriageDate:married,status:$("qaStatus").value});
@@ -278,6 +288,7 @@ function openQuickAdd(kind,srcId,anchor){
       afterEdit(id,"Added "+display+" as "+KIND_PHRASE[kind]+" "+name(src)+".")
     }catch(e){toast(e.message,"err")}
   };
+  $("qaLife").onchange=()=>{$("qaDodWrap").classList.toggle("hidden",$("qaLife").value!=="deceased")};
   $("qaAdd").onclick=submit;
   el.onkeydown=e=>{if(e.key==="Enter"&&!(e.target.id==="qaFind")){e.preventDefault();submit()}else if(e.key==="Escape"){e.preventDefault();e.stopPropagation();close()}};
   $("qaFind").oninput=e=>{
@@ -297,18 +308,63 @@ function onHandleDrop(kind,srcId,tgtId,pos){
 function attachHandles(){
   if(handles){handles.destroy();handles=null}
   if(!cy||typeof NodeHandles==="undefined")return;
-  handles=NodeHandles.attach(cy,{label:id=>name(byId(id)),onAdd:(kind,id,pos)=>openQuickAdd(kind,id,pos),onDrop:onHandleDrop})
+  handles=NodeHandles.attach(cy,{label:id=>name(byId(id)),branch:{has:id=>!searching()&&branchInfo.canCollapse.has(id),collapsed:id=>collapsed.has(id)&&(branchInfo.hidden[id]||0)>0,count:id=>branchInfo.hidden[id]||0,onToggle:toggleBranch},onAdd:(kind,id,pos)=>openQuickAdd(kind,id,pos),onDrop:onHandleDrop})
 }
 
 function renderActions(){
   const a=$("editActions");
   a.innerHTML='<div class="addRel" style="flex:1 1 100%"><b>Add a relative</b><div class="row"><button class="btn small primary" data-add="parent">＋ Parent</button><button class="btn small primary" data-add="child">＋ Child</button><button class="btn small primary" data-add="spouse">＋ Spouse</button><button class="btn small primary" data-add="sibling">＋ Sibling</button></div><div class="hint">Tip: hover someone on the tree and click a <b>+</b> next to them. Drag a <b>+</b> onto another person to connect them.</div></div>'+(editing?'<button class="btn red small" id="archiveAction">Archive</button>':'<button class="btn small" id="startFromPerson">✎ Edit details</button>');
   a.querySelectorAll("[data-add]").forEach(b=>{b.onclick=()=>{if(mobileView())closePanel();const n=cy&&selectedId&&cy.getElementById(selectedId),pos=n&&n.length?n.renderedPosition():{x:120,y:120};openQuickAdd(b.dataset.add,selectedId,{x:pos.x+NODE_W/2+30,y:pos.y})}});
+  const sel=selectedId,can=!searching()&&branchInfo.canCollapse.has(sel),view=document.createElement("div");
+  view.className="addRel";view.style.flex="1 1 100%";
+  view.innerHTML='<b>View</b><div class="row">'+(can?'<button class="btn small" data-branch>'+(collapsed.has(sel)?"▸ Expand this branch":"▾ Collapse this branch")+'</button>':'')+'<button class="btn small" data-focus>'+(focusId===sel?"✕ Exit focus":"◎ Focus on this family line")+'</button></div><div class="hint">Collapse hides everyone below them; Focus shows only their ancestors, descendants and spouses.</div>';
+  a.appendChild(view);
+  const bb=view.querySelector("[data-branch]");if(bb)bb.onclick=()=>toggleBranch(sel);
+  view.querySelector("[data-focus]").onclick=()=>setFocus(focusId===sel?null:sel);
   if(editing)$("archiveAction").onclick=archiveSelected;else $("startFromPerson").onclick=()=>setEditMode(true)
 }
 function marriageHtml(p){let rs=spouseEdges().filter(r=>r.personAId===p.id||r.personBId===p.id).sort((a,b)=>(a.order||999)-(b.order||999));if(!rs.length)return '<div class="muted">No spouse relationship recorded.</div>';return rs.map(r=>{let other=byId(r.personAId===p.id?r.personBId:r.personAId),st=r.status||((r.divorceDate)?"divorced":"married");return '<div class="marriageBadge">◉ '+esc(st)+' · '+esc(name(other)||"Unknown")+ (r.marriageDate?' · '+esc(fmtDate(r.marriageDate)):"") +'</div>'}).join(" ")}
 function renderRelations(p){let ps=parentEdges().filter(r=>r.childId===p.id).map(r=>(r.role||"parent")+": "+name(byId(r.parentId))),cs=parentEdges().filter(r=>r.parentId===p.id).sort((a,b)=>(a.order||999)-(b.order||999)).map(r=>(r.order||"")+" · "+name(byId(r.childId))),ss=spouseEdges().filter(r=>r.personAId===p.id||r.personBId===p.id).sort((a,b)=>(a.order||999)-(b.order||999)).map(r=>{let o=byId(r.personAId===p.id?r.personBId:r.personAId);return (name(o)||"Unknown")+(r.marriageDate?" · "+fmtDate(r.marriageDate):"")+(r.marriagePlace?" · "+r.marriagePlace:"")+(r.status?" · "+r.status:"")});$("rels").innerHTML='<div><span>Parents</span><b>'+esc(ps.join(" · ")||"None")+'</b></div><div><span>Spouses</span><b>'+esc(ss.join(" · ")||"None")+'</b></div><div><span>Children · ordered</span><b>'+esc(cs.join(" · ")||"None")+'</b></div>'}
 let layoutPos={};
+/* Big trees: fold a person's branch away (collapse) or look at one family line only (focus). Both are views, not edits. */
+let collapsed=new Set(),focusId=null,branchInfo={visible:new Set(),hidden:{},canCollapse:new Set()};
+try{collapsed=new Set(JSON.parse(localStorage.getItem("familyGraphCollapsed")||"[]"))}catch(_){}
+const saveCollapsed=()=>{try{localStorage.setItem("familyGraphCollapsed",JSON.stringify([...collapsed]))}catch(_){}};
+const searching=()=>!!($("search")&&$("search").value.trim());
+function relayout(keepId){
+  const n=keepId&&cy&&cy.getElementById(keepId),before=n&&n.length?n.renderedPosition():null;
+  layoutPos={};draw($("search").value);
+  const m=keepId&&cy.getElementById(keepId);
+  if(before&&m&&m.length){const a=m.renderedPosition();cy.panBy({x:before.x-a.x,y:before.y-a.y})}
+}
+function toggleBranch(id){
+  if(collapsed.has(id))collapsed.delete(id);else collapsed.add(id);
+  saveCollapsed();relayout(id)
+}
+function collapseAll(){
+  const all=(data.persons||[]).filter(active).map(p=>p.id),v=branchView(all,parentEdges(),spouseEdges(),new Set());
+  const anyFolded=[...collapsed].some(x=>v.canCollapse.has(x));
+  collapsed=anyFolded?new Set():new Set(v.canCollapse);saveCollapsed();layoutPos={};draw($("search").value);if(cy)cy.fit(undefined,70);
+  toast(anyFolded?"Everything is expanded.":"Every branch is folded. Click ▸ under a person (or double-click them) to open it.","ok",4500)
+}
+function setFocus(id){
+  focusId=id||null;layoutPos={};draw($("search").value);if(cy){cy.fit(undefined,70);if(cy.zoom()>1)cy.zoom(1);if(selectedId&&cy.getElementById(selectedId).length)cy.getElementById(selectedId).select()}
+  if(selectedId&&byId(selectedId))renderActions()
+}
+/* Open whatever folds `id` away (nearest fold first), so a person who is selected, searched for or just added is never hidden. */
+function unhide(id){
+  if(!collapsed.size)return false;
+  const next=unfold((data.persons||[]).filter(active).map(p=>p.id),parentEdges(),spouseEdges(),collapsed,id);
+  if(next.size===collapsed.size)return false;
+  collapsed=next;saveCollapsed();return true
+}
+function ensureVisible(id){
+  if(!cy||cy.getElementById(id).length||searching())return;
+  let redo=false;
+  if(focusId&&!lineageOf(focusId).has(id)){focusId=null;redo=true}
+  if(unhide(id))redo=true;
+  if(redo){layoutPos={};draw("")}
+}
 /* Existing people keep their place (like a drawing tool); people who are new get a free spot next to their relatives. */
 function placeMissing(missing,pcs,sps){
   const cols=NODE_W+GAP_X,rowH=NODE_H+GAP_Y,mean=a=>a.reduce((t,o)=>t+o.x,0)/a.length;
@@ -341,7 +397,7 @@ function stablePositions(people,pcs,sps){
 let lastDrawKey="",lineageOn=localStorage.getItem("familyGraphLineage")!=="off";
 const mobileView=()=>matchMedia("(max-width:1050px)").matches;
 const yearOf=d=>d?String(d).slice(0,4):"";
-const years=p=>p.dateOfBirth||p.dateOfDeath?(yearOf(p.dateOfBirth)||"?")+(p.dateOfDeath?"–"+yearOf(p.dateOfDeath):(p.lifeStatus==="deceased"?"–?":"–")):"";
+const years=p=>{const b=yearOf(p.dateOfBirth),d=yearOf(p.dateOfDeath),dead=lifeOf(p)==="deceased";return dead?(b||d?(b||"?")+"–"+(d||"?"):"deceased"):b?b+"–":""};
 function cyStyle(hier){
   const css=getComputedStyle(document.documentElement),v=n=>css.getPropertyValue(n).trim();
   return [
@@ -349,6 +405,7 @@ function cyStyle(hier){
     {selector:"node[gender=\"male\"]",style:{"border-color":v("--male")}},
     {selector:"node[gender=\"female\"]",style:{"border-color":v("--female")}},
     {selector:"node.deceased",style:{"border-style":"dashed"}},
+    {selector:"node.folded",style:{"underlay-color":v("--ring"),"underlay-opacity":.28,"underlay-padding":5,"underlay-shape":"round-rectangle"}},
     {selector:"node:selected",style:{"border-width":5,"border-color":v("--ring"),"underlay-color":v("--ring"),"underlay-opacity":.3,"underlay-padding":9}},
     {selector:"edge",style:{"curve-style":hier?"taxi":"bezier","taxi-direction":"downward","taxi-turn":"50%","line-color":v("--edge"),"width":2,"target-arrow-shape":hier?"none":"triangle","target-arrow-color":v("--edge")}},
     {selector:"edge.spouse",style:{"curve-style":"straight","line-style":"dashed","line-color":"#d7a62f","width":3,"target-arrow-shape":"none"}},
@@ -358,10 +415,12 @@ function cyStyle(hier){
 function draw(q=""){
   const tree=$("tree");
   if(!tree) throw new Error("Tree container #tree is missing");
-  const people=(data?.persons||[]).filter(active).filter(p=>!q||name(p).toLowerCase().includes(q.toLowerCase()));
+  let people=(data?.persons||[]).filter(active).filter(p=>!q||name(p).toLowerCase().includes(q.toLowerCase()));
+  if(!q&&focusId&&byId(focusId)){const keep=lineageOf(focusId);people=people.filter(p=>keep.has(p.id))}
+  {const all=new Set(people.map(p=>p.id));branchInfo=branchView([...all],parentEdges().filter(r=>all.has(r.parentId)&&all.has(r.childId)),spouseEdges().filter(r=>all.has(r.personAId)&&all.has(r.personBId)),q?new Set():collapsed);people=people.filter(p=>branchInfo.visible.has(p.id))}
   const ids=new Set(people.map(p=>p.id)),pcs=parentEdges().filter(r=>ids.has(r.parentId)&&ids.has(r.childId)),sps=spouseEdges().filter(r=>ids.has(r.personAId)&&ids.has(r.personBId));
   const hier=layoutMode==="tree",pos=hier?(q?treeLayout([...ids],pcs,sps):stablePositions(people,pcs,sps)):null,els=[];
-  people.forEach(p=>{const y=years(p);els.push({group:"nodes",data:{id:String(p.id),label:(p.gender==="male"?"♂ ":p.gender==="female"?"♀ ":"• ")+name(p)+(y?"\n"+y:""),gender:p.gender||""},classes:p.dateOfDeath||p.lifeStatus==="deceased"?"deceased":"",...(pos?{position:{...pos[p.id]}}:{})})});
+  people.forEach(p=>{const y=years(p),folded=!q&&collapsed.has(p.id)&&branchInfo.hidden[p.id]>0;els.push({group:"nodes",data:{id:String(p.id),label:(p.gender==="male"?"♂ ":p.gender==="female"?"♀ ":"• ")+name(p)+(y?"\n"+y:"")+(folded?"\n▸ "+branchInfo.hidden[p.id]+" hidden":""),gender:p.gender||""},classes:(lifeOf(p)==="deceased"?"deceased":"")+(folded?" folded":""),...(pos?{position:{...pos[p.id]}}:{})})});
   pcs.forEach(r=>els.push({group:"edges",data:{id:"p"+r.parentId+"_"+r.childId,source:String(r.parentId),target:String(r.childId)}}));
   sps.forEach(r=>els.push({group:"edges",data:{id:"s"+r.personAId+"_"+r.personBId,source:String(r.personAId),target:String(r.personBId)},classes:"spouse"}));
   const key=layoutMode+"|"+q,keep=cy&&key===lastDrawKey?{zoom:cy.zoom(),pan:cy.pan()}:null;
@@ -378,6 +437,10 @@ function draw(q=""){
   cy.on("tap","node",e=>{show(byId(e.target.id()));if(mobileView())openPanel()});
   cy.on("tap",e=>{if(e.target===cy&&selectedId)clearSelection()});
   if(selectedId&&byId(selectedId)&&cy.getElementById(selectedId).length)cy.getElementById(selectedId).select();
+  cy.on("dbltap","node",e=>{if(!searching()&&branchInfo.canCollapse.has(e.target.id()))toggleBranch(e.target.id())});
+  const nFold=[...collapsed].filter(x=>x in branchInfo.hidden).length;
+  $("collapseBtn").textContent=nFold?"⇱ Expand all":"⇲ Collapse all";$("collapseBtn").classList.toggle("hidden",!hier||!!q||!branchInfo.canCollapse.size);
+  $("focusBtn").classList.toggle("hidden",!focusId);
   applyLineage();renderPeople(q);attachHandles()
 }
 /* Everyone, as a list: the accessible alternative to the canvas and the fastest way to find someone in a big tree. */
@@ -410,7 +473,10 @@ const openPanel=()=>{document.querySelector(".side").classList.add("open");$("pa
 const closePanel=()=>{document.querySelector(".side").classList.remove("open");$("panelBtn").setAttribute("aria-expanded","false")};
 function renderStats(){}
 async function readPhoto(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=720,scale=Math.min(1,max/Math.max(img.width,img.height)),w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));const c=document.createElement("canvas");c.width=w;c.height=h;c.getContext("2d").drawImage(img,0,0,w,h);resolve(c.toDataURL("image/jpeg",.82))};img.onerror=reject;img.src=r.result};r.onerror=reject;r.readAsDataURL(file)})}
-async function applyPerson(){if(!editing||!selectedId)return;let p=byId(selectedId),dob=parseDate($("dob").value),dod=parseDate($("dod").value);if($("dob").value.trim()&&!dob){toast("DOB must be DD/MM/YYYY");return}if($("dod").value.trim()&&!dod){toast("Death date must be DD/MM/YYYY");return}if(dob&&dod&&dod<dob){toast("Death date cannot be before DOB");return}let display=($("display").value.trim()||[$("first").value.trim(),$("middle").value.trim(),$("family").value.trim()].filter(Boolean).join(" ")).trim();if(!display){toast("Name is required");return}Object.assign(p,{firstName:$("first").value.trim(),middleName:$("middle").value.trim(),familyName:$("family").value.trim(),displayName:display,gender:$("gender").value,nickname:$("nick").value.trim(),maidenName:$("maiden").value.trim(),dateOfBirth:dob,dateOfDeath:dod,lifeStatus:dod?"deceased":(p.lifeStatus||"unknown"),birthPlace:$("birthPlace").value.trim(),birthRegion:$("birthRegion").value.trim(),birthCountry:$("birthCountry").value.trim(),deathPlace:$("deathPlace").value.trim(),currentLocation:$("location").value.trim(),occupation:$("occupation").value.trim(),notes:$("notes").value.trim(),maritalStatus:$("maritalStatus").value,isMarried:$("maritalStatus").value==="married",recordStatus:"active"});record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Updated "+display);draw($("search").value);show(p)}
+function syncLifeUi(){const dead=$("lifeStatus").value==="deceased";$("dodWrap").classList.toggle("hidden",!dead);$("deathPlaceWrap").classList.toggle("hidden",!dead)}
+$("lifeStatus").onchange=syncLifeUi;
+$("dod").oninput=()=>{if($("dod").value.trim()&&$("lifeStatus").value!=="deceased"){$("lifeStatus").value="deceased";syncLifeUi()}};
+async function applyPerson(){if(!editing||!selectedId)return;let p=byId(selectedId),life=$("lifeStatus").value,dob=parseDate($("dob").value),dod=life==="deceased"?parseDate($("dod").value):"";if($("dob").value.trim()&&!dob){toast("Born must be "+DATE_HINT);return}if(life==="deceased"&&$("dod").value.trim()&&!dod){toast("Died must be "+DATE_HINT);return}if(dateBefore(dod,dob)){toast("Death date cannot be before the birth date");return}let display=($("display").value.trim()||[$("first").value.trim(),$("middle").value.trim(),$("family").value.trim()].filter(Boolean).join(" ")).trim();if(!display){toast("Name is required");return}Object.assign(p,{firstName:$("first").value.trim(),middleName:$("middle").value.trim(),familyName:$("family").value.trim(),displayName:display,gender:$("gender").value,nickname:$("nick").value.trim(),maidenName:$("maiden").value.trim(),dateOfBirth:dob||null,dateOfDeath:dod||null,lifeStatus:life,birthPlace:$("birthPlace").value.trim(),birthRegion:$("birthRegion").value.trim(),birthCountry:$("birthCountry").value.trim(),deathPlace:life==="deceased"?$("deathPlace").value.trim():"",currentLocation:$("location").value.trim(),occupation:$("occupation").value.trim(),notes:$("notes").value.trim(),maritalStatus:$("maritalStatus").value,isMarried:$("maritalStatus").value==="married",recordStatus:"active"});record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Updated "+display);draw($("search").value);show(p)}
 function archiveSelected(){if(!editing||!selectedId)return;let p=byId(selectedId);if(!confirm("Archive "+name(p)+"?"))return;p.recordStatus="deleted";p.archivedAt=new Date().toISOString();record("DELETE_PERSON",{personId:p.id},"Archived "+name(p));draw($("search").value);$("panel").hidden=true}
 function connectionModal(sourceId,targetId,preset){
   const a=byId(sourceId), b=byId(targetId);
@@ -445,8 +511,8 @@ function connectionModal(sourceId,targetId,preset){
   render();
 }
 
-function newPersonFields(prefix){return '<div class="grid2"><label>First name *<input id="'+prefix+'First"></label><label>Family name<input id="'+prefix+'Family"></label><label>Display name<input id="'+prefix+'Display"></label><label>Gender<select id="'+prefix+'Gender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label><label>DOB · DD/MM/YYYY<input id="'+prefix+'Dob" maxlength="10" placeholder="DD/MM/YYYY"></label><label>Birth place<input id="'+prefix+'Birth"></label></div>'}
-function createModalPerson(prefix){let first=$(prefix+"First").value.trim(),family=$(prefix+"Family").value.trim(),display=$(prefix+"Display").value.trim()||[first,family].filter(Boolean).join(" "),dob=parseDate($(prefix+"Dob").value);if(!display)throw Error("Name required");if($(prefix+"Dob").value.trim()&&!dob)throw Error("DOB must be DD/MM/YYYY");let id=nextId();let p={id,firstName:first,middleName:"",familyName:family,displayName:display,gender:$(prefix+"Gender").value,maritalStatus:"unknown",isMarried:false,dateOfBirth:dob,dateOfDeath:null,lifeStatus:"unknown",birthPlace:$(prefix+"Birth").value.trim(),birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"};data.persons.push(p);record("ADD_PERSON",{person:deep(p)},"Added "+display);return id}
+function newPersonFields(prefix){return '<div class="grid2"><label>First name *<input id="'+prefix+'First"></label><label>Family name<input id="'+prefix+'Family"></label><label>Display name<input id="'+prefix+'Display"></label><label>Gender<select id="'+prefix+'Gender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label><label>Born · date or year<input id="'+prefix+'Dob" maxlength="10" placeholder="DD/MM/YYYY · MM/YYYY · YYYY"></label><label>Living or deceased?<select id="'+prefix+'Life"><option value="unknown">Not sure</option><option value="living">Living</option><option value="deceased">Deceased</option></select></label><label>Birth place<input id="'+prefix+'Birth"></label></div>'}
+function createModalPerson(prefix){let first=$(prefix+"First").value.trim(),family=$(prefix+"Family").value.trim(),display=$(prefix+"Display").value.trim()||[first,family].filter(Boolean).join(" "),dob=parseDate($(prefix+"Dob").value);if(!display)throw Error("Name required");if($(prefix+"Dob").value.trim()&&!dob)throw Error("Born must be "+DATE_HINT);let id=nextId();let p={id,firstName:first,middleName:"",familyName:family,displayName:display,gender:$(prefix+"Gender").value,maritalStatus:"unknown",isMarried:false,dateOfBirth:dob||null,dateOfDeath:null,lifeStatus:$(prefix+"Life")?$(prefix+"Life").value:"unknown",birthPlace:$(prefix+"Birth").value.trim(),birthRegion:"",birthCountry:"",deathPlace:"",currentLocation:"",occupation:"",notes:"",recordStatus:"active"};data.persons.push(p);record("ADD_PERSON",{person:deep(p)},"Added "+display);return id}
 function addPerson(){if(!editing)setEditMode(true);openModal("Add person",newPersonFields("new"),()=>{try{let id=createModalPerson("new");closeModal();draw($("search").value);show(byId(id))}catch(e){toast(e.message)}})}
 let lastFocus=null;
 function openModal(title,html,saveFn,saveLabel="Apply",cancelLabel="Cancel"){
@@ -518,7 +584,7 @@ function finishEditing(){
 }
 /* ===== Export: your family data is yours — JSON for backups, GEDCOM for other genealogy tools, print for paper ===== */
 const GED_MONTHS=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
-const gedDate=d=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(d||"");return m?(+m[3])+" "+GED_MONTHS[+m[2]-1]+" "+m[1]:""};
+const gedDate=d=>{const m=/^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(d||"");return m?(m[3]?(+m[3])+" ":"")+(m[2]?GED_MONTHS[+m[2]-1]+" ":"")+m[1]:""};
 const gedText=t=>String(t==null?"":t).replace(/[\r\n]+/g," ").trim();
 function buildGedcom(g){
   const people=(g.persons||[]).filter(active),ok=new Set(people.map(p=>p.id)),idx=new Map(people.map((p,i)=>[p.id,i+1])),L=[];
@@ -538,7 +604,7 @@ function buildGedcom(g){
     if(p.maidenName)L.push("2 SURN "+gedText(p.maidenName));
     if(p.gender==="male")L.push("1 SEX M");else if(p.gender==="female")L.push("1 SEX F");
     if(p.dateOfBirth||p.birthPlace){L.push("1 BIRT");if(p.dateOfBirth)L.push("2 DATE "+gedDate(p.dateOfBirth));const pl=[p.birthPlace,p.birthRegion,p.birthCountry].filter(Boolean).join(", ");if(pl)L.push("2 PLAC "+gedText(pl))}
-    if(p.dateOfDeath||p.deathPlace){L.push("1 DEAT");if(p.dateOfDeath)L.push("2 DATE "+gedDate(p.dateOfDeath));if(p.deathPlace)L.push("2 PLAC "+gedText(p.deathPlace))}
+    if(p.dateOfDeath||p.deathPlace||lifeOf(p)==="deceased"){L.push(p.dateOfDeath||p.deathPlace?"1 DEAT":"1 DEAT Y");if(p.dateOfDeath)L.push("2 DATE "+gedDate(p.dateOfDeath));if(p.deathPlace)L.push("2 PLAC "+gedText(p.deathPlace))}
     if(p.occupation)L.push("1 OCCU "+gedText(p.occupation));
     if(p.currentLocation)L.push("1 RESI","2 PLAC "+gedText(p.currentLocation));
     if(p.notes)gedText(p.notes).match(/.{1,240}/g).forEach((c,i)=>L.push(i?"2 CONC "+c:"1 NOTE "+c));
@@ -658,7 +724,7 @@ async function boot(){
   $("retryBoot").onclick=()=>{$("tree").innerHTML="";boot()}
  }
 }
-$("photoBtn").onclick=()=>$("photoInput").click(); $("photoInput").onchange=async e=>{const f=e.target.files?.[0];if(!f||!selectedId)return;try{const p=byId(selectedId);p.photoDataUrl=await readPhoto(f);record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Updated photo for "+name(p));draw($("search").value);show(p)}catch(err){toast("Unable to read this image.")}}; $("photoRemove").onclick=()=>{if(!selectedId)return;const p=byId(selectedId);delete p.photoDataUrl;delete p.photoUrl;record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Removed photo from "+name(p));draw($("search").value);show(p)}; $("themeBtn").onclick=()=>setTheme(document.documentElement.dataset.theme==="light"?"dark":"light");initTheme();$("editBtn").onclick=()=>setEditMode(!editing);$("finishBtn").onclick=finishEditing;$("adminBtn").onclick=unlockAdmin;$("addBtn").onclick=addPerson;$("applyPerson").onclick=applyPerson;$("resetPerson").onclick=()=>{if(!selectedId)return;let p=byId(selectedId),live=liveData.persons.find(x=>x.id===selectedId);if(live){Object.assign(p,deep(live));record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Reset "+name(p))}};$("tidyBtn").onclick=()=>{layoutMode="tree";layoutPos={};lastDrawKey="";$("treeBtn").classList.add("primary");$("networkBtn").classList.remove("primary");draw($("search").value)};$("treeBtn").onclick=()=>{layoutMode="tree";layoutPos={};lastDrawKey="";$("treeBtn").classList.add("primary");$("networkBtn").classList.remove("primary");draw($("search").value)};$("networkBtn").onclick=()=>{layoutMode="network";$("networkBtn").classList.add("primary");$("treeBtn").classList.remove("primary");draw($("search").value)};$("fitBtn").onclick=()=>cy?.fit(undefined,90);let searchTimer=null;$("search").oninput=e=>{clearTimeout(searchTimer);const v=e.target.value;searchTimer=setTimeout(()=>draw(v),160)};$("clearSearch").onclick=()=>{$("search").value="";draw()};
+$("photoBtn").onclick=()=>$("photoInput").click(); $("photoInput").onchange=async e=>{const f=e.target.files?.[0];if(!f||!selectedId)return;try{const p=byId(selectedId);p.photoDataUrl=await readPhoto(f);record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Updated photo for "+name(p));draw($("search").value);show(p)}catch(err){toast("Unable to read this image.")}}; $("photoRemove").onclick=()=>{if(!selectedId)return;const p=byId(selectedId);delete p.photoDataUrl;delete p.photoUrl;record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Removed photo from "+name(p));draw($("search").value);show(p)}; $("themeBtn").onclick=()=>setTheme(document.documentElement.dataset.theme==="light"?"dark":"light");initTheme();$("editBtn").onclick=()=>setEditMode(!editing);$("finishBtn").onclick=finishEditing;$("adminBtn").onclick=unlockAdmin;$("addBtn").onclick=addPerson;$("applyPerson").onclick=applyPerson;$("resetPerson").onclick=()=>{if(!selectedId)return;let p=byId(selectedId),live=liveData.persons.find(x=>x.id===selectedId);if(live){Object.assign(p,deep(live));record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Reset "+name(p))}};$("collapseBtn").onclick=collapseAll;$("focusBtn").onclick=()=>setFocus(null);$("tidyBtn").onclick=()=>{layoutMode="tree";layoutPos={};lastDrawKey="";$("treeBtn").classList.add("primary");$("networkBtn").classList.remove("primary");draw($("search").value)};$("treeBtn").onclick=()=>{layoutMode="tree";layoutPos={};lastDrawKey="";$("treeBtn").classList.add("primary");$("networkBtn").classList.remove("primary");draw($("search").value)};$("networkBtn").onclick=()=>{layoutMode="network";$("networkBtn").classList.add("primary");$("treeBtn").classList.remove("primary");draw($("search").value)};$("fitBtn").onclick=()=>cy?.fit(undefined,90);let searchTimer=null;$("search").oninput=e=>{clearTimeout(searchTimer);const v=e.target.value;searchTimer=setTimeout(()=>draw(v),160)};$("clearSearch").onclick=()=>{$("search").value="";draw()};
 $("panelBtn").onclick=()=>document.querySelector(".side").classList.contains("open")?closePanel():openPanel();$("sideClose").onclick=closePanel;$("backToList").onclick=clearSelection;
 $("people").onclick=e=>{const b=e.target.closest("[data-id]");if(!b)return;const p=byId(b.dataset.id);if(!p)return;if(cy)cy.nodes().unselect();show(p);if(cy)cy.getElementById(p.id).select();focusNode(p.id)};
 $("lineageBtn").setAttribute("aria-pressed",String(lineageOn));$("lineageBtn").classList.toggle("primary",lineageOn);
