@@ -10,15 +10,30 @@ const GENDERS = ["", "male", "female", "other", "unknown"];
 const PERSON_TEXT = {
   firstName: 80, middleName: 80, familyName: 80, displayName: 160, nickname: 80, maidenName: 80,
   birthPlace: 160, birthRegion: 160, birthCountry: 160, deathPlace: 160, currentLocation: 160, occupation: 160,
-  notes: 4000, lifeStatus: 20, maritalStatus: 20,
+  notes: 4000, maritalStatus: 20,
 };
 const DATE_FIELDS = ["dateOfBirth", "dateOfDeath"];
 
+/** Dates may be partial, because families rarely know exact days: YYYY, YYYY-MM or YYYY-MM-DD. */
 export function validDate(s) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || "");
-  if (!m) return false;
-  const [y, mo, d] = [+m[1], +m[2], +m[3]], dt = new Date(Date.UTC(y, mo - 1, d));
+  const m = /^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?$/.exec(s || "");
+  if (!m || +m[1] < 1000) return false;
+  const [y, mo, d] = [+m[1], m[2] ? +m[2] : 1, m[3] ? +m[3] : 1], dt = new Date(Date.UTC(y, mo - 1, d));
   return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
+}
+
+/** True only when `a` is certainly earlier than `b`; partial dates are compared at the precision both share. */
+export function dateBefore(a, b) {
+  if (!a || !b) return false;
+  const n = Math.min(a.length, b.length);
+  return a.slice(0, n) < b.slice(0, n);
+}
+
+export const LIFE_STATUSES = ["unknown", "living", "deceased"];
+/** Normalise a stored/submitted life status ("alive" is accepted as an alias for "living"). */
+export function lifeStatusOf(v) {
+  const t = String(v || "").trim().toLowerCase();
+  return t === "alive" ? "living" : LIFE_STATUSES.includes(t) ? t : "unknown";
 }
 
 function text(v, max, label) {
@@ -30,7 +45,7 @@ function text(v, max, label) {
 }
 function dateOrNull(v, label) {
   if (v === null || v === undefined || v === "") return null;
-  if (typeof v !== "string" || !validDate(v)) throw new HttpError(400, label + " must be a valid date (YYYY-MM-DD).");
+  if (typeof v !== "string" || !validDate(v)) throw new HttpError(400, label + " must be a valid date (YYYY-MM-DD, YYYY-MM or YYYY).");
   return v;
 }
 function id(v, label) {
@@ -53,7 +68,12 @@ export function samplePerson(src) {
     out.gender = g;
   }
   if ("isMarried" in src) out.isMarried = Boolean(src.isMarried);
-  if (out.dateOfBirth && out.dateOfDeath && out.dateOfDeath < out.dateOfBirth) throw new HttpError(400, "Death date cannot precede birth date.");
+  if ("lifeStatus" in src) {
+    const t = text(src.lifeStatus, 20, "lifeStatus").toLowerCase();
+    if (t && t !== "alive" && !LIFE_STATUSES.includes(t)) throw new HttpError(400, "lifeStatus is not recognised.");
+    out.lifeStatus = lifeStatusOf(t);
+  }
+  if (dateBefore(out.dateOfDeath, out.dateOfBirth)) throw new HttpError(400, "Death date cannot precede birth date.");
   return out;
 }
 

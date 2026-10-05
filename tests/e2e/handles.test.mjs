@@ -169,3 +169,68 @@ describe("draw.io-style editing on the tree", () => {
     assert.deepEqual(app.errors.filter((e) => !/409|descendant/.test(e)), []);
   });
 });
+
+describe("living / deceased without exact dates", () => {
+  let app, page;
+  before(async () => { app = await startApp({ graph: bigFamily(2, 1) }); page = app.page; await app.open("/index.html"); await sleep(1200); });
+  after(() => app.close());
+
+  test("the person form has a Living/Deceased choice; death fields appear only for Deceased; a year is enough", async () => {
+    const id = await page.evaluate(() => data.persons[1].id);
+    await page.evaluate((id) => { setEditMode(true); show(byId(id)); }, id);
+    assert.equal(await page.isVisible("#dod"), false, "no death date field for a person of unknown status");
+    await page.selectOption("#lifeStatus", "living");
+    assert.equal(await page.isVisible("#dod"), false);
+    await page.fill("#dob", "1980");
+    await page.selectOption("#lifeStatus", "deceased");
+    assert.equal(await page.isVisible("#dod"), true);
+    assert.equal(await page.isVisible("#deathPlace"), true);
+    await page.fill("#dod", "2021");
+    await page.click("#applyPerson"); await sleep(400);
+    const p = await page.evaluate((id) => byId(id), id);
+    assert.equal(p.dateOfBirth, "1980"); assert.equal(p.dateOfDeath, "2021"); assert.equal(p.lifeStatus, "deceased");
+    assert.match(await page.evaluate((id) => cy.getElementById(id).data("label"), id), /1980–2021/);
+    // deceased but nobody knows when
+    await page.fill("#dod", ""); await page.click("#applyPerson"); await sleep(300);
+    const q = await page.evaluate((id) => byId(id), id);
+    assert.equal(q.lifeStatus, "deceased"); assert.ok(!q.dateOfDeath);
+    assert.match(await page.evaluate((id) => cy.getElementById(id).data("label"), id), /1980–\?/);
+    // back to living: the death details are cleared
+    await page.fill("#deathPlace", "Somewhere");
+    await page.selectOption("#lifeStatus", "living"); await page.click("#applyPerson"); await sleep(300);
+    const r = await page.evaluate((id) => byId(id), id);
+    assert.equal(r.lifeStatus, "living"); assert.ok(!r.dateOfDeath); assert.equal(r.deathPlace, "");
+    assert.equal(await page.isVisible("#dod"), false);
+  });
+
+  test("typing a death date flips the status to Deceased; MM/YYYY and bad dates are handled", async () => {
+    const id = await page.evaluate(() => data.persons[2].id);
+    await page.evaluate((id) => { setEditMode(true); show(byId(id)); }, id);
+    await page.selectOption("#lifeStatus", "deceased");
+    await page.fill("#dod", "07/1999");
+    await page.click("#applyPerson"); await sleep(300);
+    assert.equal((await page.evaluate((id) => byId(id), id)).dateOfDeath, "1999-07");
+    await page.fill("#dob", "31/02/1950"); await page.click("#applyPerson"); await sleep(200);
+    assert.match(await app.toastText(), /Born must be/);
+    await page.fill("#dob", "2000"); await page.click("#applyPerson"); await sleep(200);
+    assert.match(await app.toastText(), /cannot be before/);
+  });
+
+  test("quick-add can record Living or Deceased (no date needed); the request validates", async () => {
+    const src = await page.evaluate(() => data.persons[0].id);
+    await page.evaluate((src) => openQuickAdd("child", src, { x: 300, y: 200 }), src);
+    await page.fill("#qaFirst", "Ancestor");
+    assert.equal(await page.isVisible("#qaDod"), false);
+    await page.selectOption("#qaLife", "deceased");
+    assert.equal(await page.isVisible("#qaDod"), true);
+    await page.fill("#qaDod", "1901");
+    await page.keyboard.press("Enter"); await sleep(500);
+    const added = await page.evaluate(() => data.persons.find((p) => p.firstName === "Ancestor"));
+    assert.equal(added.lifeStatus, "deceased"); assert.equal(added.dateOfDeath, "1901");
+    const proposal = await page.evaluate(() => buildProposal());
+    const g = bigFamily(2, 1);
+    assert.doesNotThrow(() => applyProposal(g, proposal));
+    assert.deepEqual(integrityIssues(g), []);
+    assert.equal(g.persons.find((p) => p.firstName === "Ancestor").lifeStatus, "deceased");
+  });
+});
