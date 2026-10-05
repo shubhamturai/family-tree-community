@@ -80,7 +80,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 <section class="canvas" aria-label="Family tree">
   <div class="toolbar">
     <div class="search">⌕<input id="search" placeholder="Search family…"><button id="clearSearch" class="btn small">Clear</button></div>
-    <div class="actions"><button id="undoBtn" class="btn small hidden" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶ Undo</button><button id="redoBtn" class="btn small hidden" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>↷ Redo</button><button id="treeBtn" class="btn small primary" title="Show the generational tree">🌳 Tree</button><button id="tidyBtn" class="btn small" title="Re-arrange everyone neatly">⌗ Tidy</button><button id="networkBtn" class="btn small">◈ Network</button><button id="fitBtn" class="btn small">Fit</button><button id="addBtn" class="btn small green hidden">＋ Person</button><button id="lineageBtn" class="btn small" title="Dim everyone except the selected person's direct family line" aria-pressed="true">◎ Family line</button><button id="panelBtn" class="btn small openPanel" aria-controls="sidePanel">☰ Panel</button></div>
+    <div class="actions"><button id="undoBtn" class="btn small hidden" title="Undo (Ctrl+Z)" aria-label="Undo" disabled>↶ Undo</button><button id="redoBtn" class="btn small hidden" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled>↷ Redo</button><button id="treeBtn" class="btn small primary" title="Show the generational tree">🌳 Tree</button><button id="tidyBtn" class="btn small" title="Re-arrange everyone neatly">⌗ Tidy</button><button id="collapseBtn" class="btn small" title="Fold every branch down to its parents, or open them all again">⇲ Collapse all</button><button id="focusBtn" class="btn small primary hidden" title="Show the whole tree again">✕ Exit focus</button><button id="networkBtn" class="btn small">◈ Network</button><button id="fitBtn" class="btn small">Fit</button><button id="addBtn" class="btn small green hidden">＋ Person</button><button id="lineageBtn" class="btn small" title="Dim everyone except the selected person's direct family line" aria-pressed="true">◎ Family line</button><button id="panelBtn" class="btn small openPanel" aria-controls="sidePanel">☰ Panel</button></div>
   </div>
   <div id="tree"></div>
   <div class="tip">Hover a person and click a <b>+</b> to add a parent, child, spouse or sibling · drag a <b>+</b> onto someone to connect them · Ctrl+Z undoes</div>
@@ -181,7 +181,7 @@ function updateUndoUi(){const u=$("undoBtn"),r=$("redoBtn");if(!u)return;u.disab
 function renderChanges(){let n=changes.length;$("changeCount").textContent=n?"("+n+")":"";$("changeStatus").textContent=n?(adminMode?n+" local change(s). Admin save will apply them to the published graph.":n+" local change(s). The published tree is unchanged."):(adminMode?"No pending changes.":"No pending changes.");$("changesList").innerHTML=n?changes.slice().reverse().map(c=>'<div class="change"><div class="dot">✦</div><div><b>'+esc(c.label)+'</b><small>'+esc(c.type)+' · '+new Date(c.at).toLocaleTimeString()+'</small></div></div>').join(""):'<div class="card muted">No changes yet.</div>'}
 function setEditMode(v){editing=v;document.body.classList.toggle("editing",v);$("modeChip").textContent=v?(adminMode?"Admin edit":"Edit draft"):"View";$("modeChip").className="chip "+(v?(adminMode?"admin":"edit"):"");$("editBtn").textContent=v?"✓ Editing":"✎ Edit tree";$("finishBtn").classList.toggle("hidden",!v);$("finishBtn").textContent=adminMode?"Save changes":"Finish editing";$("submitChanges").textContent=adminMode?"Save changes":"Finish & submit request";$("addBtn").classList.toggle("hidden",!v);$("undoBtn").classList.toggle("hidden",!v);$("redoBtn").classList.toggle("hidden",!v);$("applyPerson").classList.toggle("hidden",!v);$("resetPerson").classList.toggle("hidden",!v);$("fieldStatus").textContent=v?(adminMode?"Admin changes are queued for direct application.":"Changes stay local until you finish editing."):"View only.";if(selectedId)show(byId(selectedId));renderChanges();}
 function photoSrc(p){return p?.photoDataUrl||p?.photoUrl||""} function photoMarkup(p,cls=""){const src=photoSrc(p);return src?'<img class="'+cls+'" src="'+esc(src)+'" alt="" loading="lazy">' : ""}
-function show(p){if(!p)return;selectedId=p.id;cy?.nodes().unselect();cy?.getElementById(p.id).select();$("empty").classList.add("hidden");$("profile").classList.remove("hidden");applyLineage();$("pname").textContent=name(p);$("pid").textContent=p.id+" · "+LIFE_LABEL[lifeOf(p)];$("avatar").innerHTML=photoSrc(p)?photoMarkup(p):esc((name(p)||"?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase()); $("photoMini").innerHTML=photoSrc(p)?photoMarkup(p):'<div class="muted">No photo attached</div>'; $("photoRemove").classList.toggle("hidden",!photoSrc(p));$("maritalSummary").innerHTML=marriageHtml(p);$("first").value=p.firstName||"";$("middle").value=p.middleName||"";$("family").value=p.familyName||"";$("display").value=p.displayName||"";$("gender").value=p.gender||"";$("maritalStatus").value=marriageStatus(p);$("nick").value=p.nickname||"";$("maiden").value=p.maidenName||"";$("dob").value=fmtDate(p.dateOfBirth);$("dod").value=fmtDate(p.dateOfDeath);$("lifeStatus").value=lifeOf(p);syncLifeUi();$("birthPlace").value=p.birthPlace||"";$("birthRegion").value=p.birthRegion||"";$("birthCountry").value=p.birthCountry||"";$("deathPlace").value=p.deathPlace||"";$("location").value=p.currentLocation||"";$("occupation").value=p.occupation||"";$("notes").value=p.notes||"";renderActions();renderRelations(p)}
+function show(p){if(!p)return;ensureVisible(p.id);selectedId=p.id;cy?.nodes().unselect();cy?.getElementById(p.id).select();$("empty").classList.add("hidden");$("profile").classList.remove("hidden");applyLineage();$("pname").textContent=name(p);$("pid").textContent=p.id+" · "+LIFE_LABEL[lifeOf(p)];$("avatar").innerHTML=photoSrc(p)?photoMarkup(p):esc((name(p)||"?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase()); $("photoMini").innerHTML=photoSrc(p)?photoMarkup(p):'<div class="muted">No photo attached</div>'; $("photoRemove").classList.toggle("hidden",!photoSrc(p));$("maritalSummary").innerHTML=marriageHtml(p);$("first").value=p.firstName||"";$("middle").value=p.middleName||"";$("family").value=p.familyName||"";$("display").value=p.displayName||"";$("gender").value=p.gender||"";$("maritalStatus").value=marriageStatus(p);$("nick").value=p.nickname||"";$("maiden").value=p.maidenName||"";$("dob").value=fmtDate(p.dateOfBirth);$("dod").value=fmtDate(p.dateOfDeath);$("lifeStatus").value=lifeOf(p);syncLifeUi();$("birthPlace").value=p.birthPlace||"";$("birthRegion").value=p.birthRegion||"";$("birthCountry").value=p.birthCountry||"";$("deathPlace").value=p.deathPlace||"";$("location").value=p.currentLocation||"";$("occupation").value=p.occupation||"";$("notes").value=p.notes||"";renderActions();renderRelations(p)}
 
 /* ===== Draw.io-style editing: "+" handles on the canvas, quick-add popover, drag-to-connect ===== */
 let handles=null;
@@ -231,6 +231,8 @@ function connectPeople(kind,srcId,tgtId){
 }
 const KIND_PHRASE={parent:"a parent of",child:"a child of",spouse:"a spouse of",sibling:"a sibling of"};
 function afterEdit(newId,msg){
+  if(focusId&&!lineageOf(focusId).has(newId))focusId=null;
+  if(unhide(newId))layoutPos={};
   draw($("search").value);
   const p=byId(newId);if(p){show(p);const n=cy&&cy.getElementById(newId);if(n&&n.length){n.select();revealNode(newId)}}
   toast(msg,"ok",6000,{label:"Undo",fn:()=>{undo()}})
@@ -306,18 +308,63 @@ function onHandleDrop(kind,srcId,tgtId,pos){
 function attachHandles(){
   if(handles){handles.destroy();handles=null}
   if(!cy||typeof NodeHandles==="undefined")return;
-  handles=NodeHandles.attach(cy,{label:id=>name(byId(id)),onAdd:(kind,id,pos)=>openQuickAdd(kind,id,pos),onDrop:onHandleDrop})
+  handles=NodeHandles.attach(cy,{label:id=>name(byId(id)),branch:{has:id=>!searching()&&branchInfo.canCollapse.has(id),collapsed:id=>collapsed.has(id)&&(branchInfo.hidden[id]||0)>0,count:id=>branchInfo.hidden[id]||0,onToggle:toggleBranch},onAdd:(kind,id,pos)=>openQuickAdd(kind,id,pos),onDrop:onHandleDrop})
 }
 
 function renderActions(){
   const a=$("editActions");
   a.innerHTML='<div class="addRel" style="flex:1 1 100%"><b>Add a relative</b><div class="row"><button class="btn small primary" data-add="parent">＋ Parent</button><button class="btn small primary" data-add="child">＋ Child</button><button class="btn small primary" data-add="spouse">＋ Spouse</button><button class="btn small primary" data-add="sibling">＋ Sibling</button></div><div class="hint">Tip: hover someone on the tree and click a <b>+</b> next to them. Drag a <b>+</b> onto another person to connect them.</div></div>'+(editing?'<button class="btn red small" id="archiveAction">Archive</button>':'<button class="btn small" id="startFromPerson">✎ Edit details</button>');
   a.querySelectorAll("[data-add]").forEach(b=>{b.onclick=()=>{if(mobileView())closePanel();const n=cy&&selectedId&&cy.getElementById(selectedId),pos=n&&n.length?n.renderedPosition():{x:120,y:120};openQuickAdd(b.dataset.add,selectedId,{x:pos.x+NODE_W/2+30,y:pos.y})}});
+  const sel=selectedId,can=!searching()&&branchInfo.canCollapse.has(sel),view=document.createElement("div");
+  view.className="addRel";view.style.flex="1 1 100%";
+  view.innerHTML='<b>View</b><div class="row">'+(can?'<button class="btn small" data-branch>'+(collapsed.has(sel)?"▸ Expand this branch":"▾ Collapse this branch")+'</button>':'')+'<button class="btn small" data-focus>'+(focusId===sel?"✕ Exit focus":"◎ Focus on this family line")+'</button></div><div class="hint">Collapse hides everyone below them; Focus shows only their ancestors, descendants and spouses.</div>';
+  a.appendChild(view);
+  const bb=view.querySelector("[data-branch]");if(bb)bb.onclick=()=>toggleBranch(sel);
+  view.querySelector("[data-focus]").onclick=()=>setFocus(focusId===sel?null:sel);
   if(editing)$("archiveAction").onclick=archiveSelected;else $("startFromPerson").onclick=()=>setEditMode(true)
 }
 function marriageHtml(p){let rs=spouseEdges().filter(r=>r.personAId===p.id||r.personBId===p.id).sort((a,b)=>(a.order||999)-(b.order||999));if(!rs.length)return '<div class="muted">No spouse relationship recorded.</div>';return rs.map(r=>{let other=byId(r.personAId===p.id?r.personBId:r.personAId),st=r.status||((r.divorceDate)?"divorced":"married");return '<div class="marriageBadge">◉ '+esc(st)+' · '+esc(name(other)||"Unknown")+ (r.marriageDate?' · '+esc(fmtDate(r.marriageDate)):"") +'</div>'}).join(" ")}
 function renderRelations(p){let ps=parentEdges().filter(r=>r.childId===p.id).map(r=>(r.role||"parent")+": "+name(byId(r.parentId))),cs=parentEdges().filter(r=>r.parentId===p.id).sort((a,b)=>(a.order||999)-(b.order||999)).map(r=>(r.order||"")+" · "+name(byId(r.childId))),ss=spouseEdges().filter(r=>r.personAId===p.id||r.personBId===p.id).sort((a,b)=>(a.order||999)-(b.order||999)).map(r=>{let o=byId(r.personAId===p.id?r.personBId:r.personAId);return (name(o)||"Unknown")+(r.marriageDate?" · "+fmtDate(r.marriageDate):"")+(r.marriagePlace?" · "+r.marriagePlace:"")+(r.status?" · "+r.status:"")});$("rels").innerHTML='<div><span>Parents</span><b>'+esc(ps.join(" · ")||"None")+'</b></div><div><span>Spouses</span><b>'+esc(ss.join(" · ")||"None")+'</b></div><div><span>Children · ordered</span><b>'+esc(cs.join(" · ")||"None")+'</b></div>'}
 let layoutPos={};
+/* Big trees: fold a person's branch away (collapse) or look at one family line only (focus). Both are views, not edits. */
+let collapsed=new Set(),focusId=null,branchInfo={visible:new Set(),hidden:{},canCollapse:new Set()};
+try{collapsed=new Set(JSON.parse(localStorage.getItem("familyGraphCollapsed")||"[]"))}catch(_){}
+const saveCollapsed=()=>{try{localStorage.setItem("familyGraphCollapsed",JSON.stringify([...collapsed]))}catch(_){}};
+const searching=()=>!!($("search")&&$("search").value.trim());
+function relayout(keepId){
+  const n=keepId&&cy&&cy.getElementById(keepId),before=n&&n.length?n.renderedPosition():null;
+  layoutPos={};draw($("search").value);
+  const m=keepId&&cy.getElementById(keepId);
+  if(before&&m&&m.length){const a=m.renderedPosition();cy.panBy({x:before.x-a.x,y:before.y-a.y})}
+}
+function toggleBranch(id){
+  if(collapsed.has(id))collapsed.delete(id);else collapsed.add(id);
+  saveCollapsed();relayout(id)
+}
+function collapseAll(){
+  const all=(data.persons||[]).filter(active).map(p=>p.id),v=branchView(all,parentEdges(),spouseEdges(),new Set());
+  const anyFolded=[...collapsed].some(x=>v.canCollapse.has(x));
+  collapsed=anyFolded?new Set():new Set(v.canCollapse);saveCollapsed();layoutPos={};draw($("search").value);if(cy)cy.fit(undefined,70);
+  toast(anyFolded?"Everything is expanded.":"Every branch is folded. Click ▸ under a person (or double-click them) to open it.","ok",4500)
+}
+function setFocus(id){
+  focusId=id||null;layoutPos={};draw($("search").value);if(cy){cy.fit(undefined,70);if(cy.zoom()>1)cy.zoom(1);if(selectedId&&cy.getElementById(selectedId).length)cy.getElementById(selectedId).select()}
+  if(selectedId&&byId(selectedId))renderActions()
+}
+/* Open whatever folds `id` away (nearest fold first), so a person who is selected, searched for or just added is never hidden. */
+function unhide(id){
+  if(!collapsed.size)return false;
+  const next=unfold((data.persons||[]).filter(active).map(p=>p.id),parentEdges(),spouseEdges(),collapsed,id);
+  if(next.size===collapsed.size)return false;
+  collapsed=next;saveCollapsed();return true
+}
+function ensureVisible(id){
+  if(!cy||cy.getElementById(id).length||searching())return;
+  let redo=false;
+  if(focusId&&!lineageOf(focusId).has(id)){focusId=null;redo=true}
+  if(unhide(id))redo=true;
+  if(redo){layoutPos={};draw("")}
+}
 /* Existing people keep their place (like a drawing tool); people who are new get a free spot next to their relatives. */
 function placeMissing(missing,pcs,sps){
   const cols=NODE_W+GAP_X,rowH=NODE_H+GAP_Y,mean=a=>a.reduce((t,o)=>t+o.x,0)/a.length;
@@ -358,6 +405,7 @@ function cyStyle(hier){
     {selector:"node[gender=\"male\"]",style:{"border-color":v("--male")}},
     {selector:"node[gender=\"female\"]",style:{"border-color":v("--female")}},
     {selector:"node.deceased",style:{"border-style":"dashed"}},
+    {selector:"node.folded",style:{"underlay-color":v("--ring"),"underlay-opacity":.28,"underlay-padding":5,"underlay-shape":"round-rectangle"}},
     {selector:"node:selected",style:{"border-width":5,"border-color":v("--ring"),"underlay-color":v("--ring"),"underlay-opacity":.3,"underlay-padding":9}},
     {selector:"edge",style:{"curve-style":hier?"taxi":"bezier","taxi-direction":"downward","taxi-turn":"50%","line-color":v("--edge"),"width":2,"target-arrow-shape":hier?"none":"triangle","target-arrow-color":v("--edge")}},
     {selector:"edge.spouse",style:{"curve-style":"straight","line-style":"dashed","line-color":"#d7a62f","width":3,"target-arrow-shape":"none"}},
@@ -367,10 +415,12 @@ function cyStyle(hier){
 function draw(q=""){
   const tree=$("tree");
   if(!tree) throw new Error("Tree container #tree is missing");
-  const people=(data?.persons||[]).filter(active).filter(p=>!q||name(p).toLowerCase().includes(q.toLowerCase()));
+  let people=(data?.persons||[]).filter(active).filter(p=>!q||name(p).toLowerCase().includes(q.toLowerCase()));
+  if(!q&&focusId&&byId(focusId)){const keep=lineageOf(focusId);people=people.filter(p=>keep.has(p.id))}
+  {const all=new Set(people.map(p=>p.id));branchInfo=branchView([...all],parentEdges().filter(r=>all.has(r.parentId)&&all.has(r.childId)),spouseEdges().filter(r=>all.has(r.personAId)&&all.has(r.personBId)),q?new Set():collapsed);people=people.filter(p=>branchInfo.visible.has(p.id))}
   const ids=new Set(people.map(p=>p.id)),pcs=parentEdges().filter(r=>ids.has(r.parentId)&&ids.has(r.childId)),sps=spouseEdges().filter(r=>ids.has(r.personAId)&&ids.has(r.personBId));
   const hier=layoutMode==="tree",pos=hier?(q?treeLayout([...ids],pcs,sps):stablePositions(people,pcs,sps)):null,els=[];
-  people.forEach(p=>{const y=years(p);els.push({group:"nodes",data:{id:String(p.id),label:(p.gender==="male"?"♂ ":p.gender==="female"?"♀ ":"• ")+name(p)+(y?"\n"+y:""),gender:p.gender||""},classes:lifeOf(p)==="deceased"?"deceased":"",...(pos?{position:{...pos[p.id]}}:{})})});
+  people.forEach(p=>{const y=years(p),folded=!q&&collapsed.has(p.id)&&branchInfo.hidden[p.id]>0;els.push({group:"nodes",data:{id:String(p.id),label:(p.gender==="male"?"♂ ":p.gender==="female"?"♀ ":"• ")+name(p)+(y?"\n"+y:"")+(folded?"\n▸ "+branchInfo.hidden[p.id]+" hidden":""),gender:p.gender||""},classes:(lifeOf(p)==="deceased"?"deceased":"")+(folded?" folded":""),...(pos?{position:{...pos[p.id]}}:{})})});
   pcs.forEach(r=>els.push({group:"edges",data:{id:"p"+r.parentId+"_"+r.childId,source:String(r.parentId),target:String(r.childId)}}));
   sps.forEach(r=>els.push({group:"edges",data:{id:"s"+r.personAId+"_"+r.personBId,source:String(r.personAId),target:String(r.personBId)},classes:"spouse"}));
   const key=layoutMode+"|"+q,keep=cy&&key===lastDrawKey?{zoom:cy.zoom(),pan:cy.pan()}:null;
@@ -387,6 +437,10 @@ function draw(q=""){
   cy.on("tap","node",e=>{show(byId(e.target.id()));if(mobileView())openPanel()});
   cy.on("tap",e=>{if(e.target===cy&&selectedId)clearSelection()});
   if(selectedId&&byId(selectedId)&&cy.getElementById(selectedId).length)cy.getElementById(selectedId).select();
+  cy.on("dbltap","node",e=>{if(!searching()&&branchInfo.canCollapse.has(e.target.id()))toggleBranch(e.target.id())});
+  const nFold=[...collapsed].filter(x=>x in branchInfo.hidden).length;
+  $("collapseBtn").textContent=nFold?"⇱ Expand all":"⇲ Collapse all";$("collapseBtn").classList.toggle("hidden",!hier||!!q||!branchInfo.canCollapse.size);
+  $("focusBtn").classList.toggle("hidden",!focusId);
   applyLineage();renderPeople(q);attachHandles()
 }
 /* Everyone, as a list: the accessible alternative to the canvas and the fastest way to find someone in a big tree. */
@@ -670,7 +724,7 @@ async function boot(){
   $("retryBoot").onclick=()=>{$("tree").innerHTML="";boot()}
  }
 }
-$("photoBtn").onclick=()=>$("photoInput").click(); $("photoInput").onchange=async e=>{const f=e.target.files?.[0];if(!f||!selectedId)return;try{const p=byId(selectedId);p.photoDataUrl=await readPhoto(f);record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Updated photo for "+name(p));draw($("search").value);show(p)}catch(err){toast("Unable to read this image.")}}; $("photoRemove").onclick=()=>{if(!selectedId)return;const p=byId(selectedId);delete p.photoDataUrl;delete p.photoUrl;record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Removed photo from "+name(p));draw($("search").value);show(p)}; $("themeBtn").onclick=()=>setTheme(document.documentElement.dataset.theme==="light"?"dark":"light");initTheme();$("editBtn").onclick=()=>setEditMode(!editing);$("finishBtn").onclick=finishEditing;$("adminBtn").onclick=unlockAdmin;$("addBtn").onclick=addPerson;$("applyPerson").onclick=applyPerson;$("resetPerson").onclick=()=>{if(!selectedId)return;let p=byId(selectedId),live=liveData.persons.find(x=>x.id===selectedId);if(live){Object.assign(p,deep(live));record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Reset "+name(p))}};$("tidyBtn").onclick=()=>{layoutMode="tree";layoutPos={};lastDrawKey="";$("treeBtn").classList.add("primary");$("networkBtn").classList.remove("primary");draw($("search").value)};$("treeBtn").onclick=()=>{layoutMode="tree";layoutPos={};lastDrawKey="";$("treeBtn").classList.add("primary");$("networkBtn").classList.remove("primary");draw($("search").value)};$("networkBtn").onclick=()=>{layoutMode="network";$("networkBtn").classList.add("primary");$("treeBtn").classList.remove("primary");draw($("search").value)};$("fitBtn").onclick=()=>cy?.fit(undefined,90);let searchTimer=null;$("search").oninput=e=>{clearTimeout(searchTimer);const v=e.target.value;searchTimer=setTimeout(()=>draw(v),160)};$("clearSearch").onclick=()=>{$("search").value="";draw()};
+$("photoBtn").onclick=()=>$("photoInput").click(); $("photoInput").onchange=async e=>{const f=e.target.files?.[0];if(!f||!selectedId)return;try{const p=byId(selectedId);p.photoDataUrl=await readPhoto(f);record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Updated photo for "+name(p));draw($("search").value);show(p)}catch(err){toast("Unable to read this image.")}}; $("photoRemove").onclick=()=>{if(!selectedId)return;const p=byId(selectedId);delete p.photoDataUrl;delete p.photoUrl;record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Removed photo from "+name(p));draw($("search").value);show(p)}; $("themeBtn").onclick=()=>setTheme(document.documentElement.dataset.theme==="light"?"dark":"light");initTheme();$("editBtn").onclick=()=>setEditMode(!editing);$("finishBtn").onclick=finishEditing;$("adminBtn").onclick=unlockAdmin;$("addBtn").onclick=addPerson;$("applyPerson").onclick=applyPerson;$("resetPerson").onclick=()=>{if(!selectedId)return;let p=byId(selectedId),live=liveData.persons.find(x=>x.id===selectedId);if(live){Object.assign(p,deep(live));record("UPDATE_PERSON",{personId:p.id,person:deep(p)},"Reset "+name(p))}};$("collapseBtn").onclick=collapseAll;$("focusBtn").onclick=()=>setFocus(null);$("tidyBtn").onclick=()=>{layoutMode="tree";layoutPos={};lastDrawKey="";$("treeBtn").classList.add("primary");$("networkBtn").classList.remove("primary");draw($("search").value)};$("treeBtn").onclick=()=>{layoutMode="tree";layoutPos={};lastDrawKey="";$("treeBtn").classList.add("primary");$("networkBtn").classList.remove("primary");draw($("search").value)};$("networkBtn").onclick=()=>{layoutMode="network";$("networkBtn").classList.add("primary");$("treeBtn").classList.remove("primary");draw($("search").value)};$("fitBtn").onclick=()=>cy?.fit(undefined,90);let searchTimer=null;$("search").oninput=e=>{clearTimeout(searchTimer);const v=e.target.value;searchTimer=setTimeout(()=>draw(v),160)};$("clearSearch").onclick=()=>{$("search").value="";draw()};
 $("panelBtn").onclick=()=>document.querySelector(".side").classList.contains("open")?closePanel():openPanel();$("sideClose").onclick=closePanel;$("backToList").onclick=clearSelection;
 $("people").onclick=e=>{const b=e.target.closest("[data-id]");if(!b)return;const p=byId(b.dataset.id);if(!p)return;if(cy)cy.nodes().unselect();show(p);if(cy)cy.getElementById(p.id).select();focusNode(p.id)};
 $("lineageBtn").setAttribute("aria-pressed",String(lineageOn));$("lineageBtn").classList.toggle("primary",lineageOn);

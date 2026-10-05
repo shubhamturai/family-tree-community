@@ -68,7 +68,7 @@ kbd{font:600 10px ui-monospace,Menlo,monospace;border:1px solid #ffffff44;border
   <section class="canvas">
     <div class="toolbar">
       <div class="search">⌕<input id="search" placeholder="Search family members…"><button id="clearSearch" class="btn small">Clear</button></div>
-      <div class="actions"><button id="treeMode" class="btn small primary">🌳 Tree</button><button id="networkMode" class="btn small">◈ Network</button><button id="fit" class="btn small">Fit</button><button id="addPerson" class="btn small green">＋ Person</button><button id="panelBtn" class="btn small mobilePanel">Panel</button></div>
+      <div class="actions"><button id="treeMode" class="btn small primary">🌳 Tree</button><button id="networkMode" class="btn small">◈ Network</button><button id="collapseBtn" class="btn small" title="Fold every branch down to its parents, or open them all again">⇲ Collapse all</button><button id="fit" class="btn small">Fit</button><button id="addPerson" class="btn small green">＋ Person</button><button id="panelBtn" class="btn small mobilePanel">Panel</button></div>
     </div>
     <div id="tree"></div>
     <div id="rvBar" class="rvbar hidden"></div>
@@ -210,7 +210,7 @@ async function save(message){data.lastUpdated=new Date().toISOString();let r;try
 function parents(){return data.relationships.parentChild.filter(r=>alive(person(r.parentId))&&alive(person(r.childId)))}
 function spouses(){return data.relationships.spouses.filter(r=>alive(person(r.personAId))&&alive(person(r.personBId)))}
 function treeNodes(q){return data.persons.filter(alive).filter(p=>!q||name(p).toLowerCase().includes(q.toLowerCase()))}
-function select(id){let p=person(id);if(!p)return;selected=p;cy.nodes().unselect();cy.getElementById(id).select();$("empty").classList.add("hidden");$("editor").classList.remove("hidden");$("pname").textContent=name(p);$("pid").textContent=p.id+" · "+LIFE_LABEL[lifeOf(p)];$("avatar").textContent=(name(p)||"?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();$("first").value=p.firstName||"";$("middle").value=p.middleName||"";$("family").value=p.familyName||"";$("display").value=p.displayName||"";$("gender").value=p.gender||"";$("nick").value=p.nickname||"";$("maiden").value=p.maidenName||"";$("dob").value=fmt(p.dateOfBirth);$("dod").value=fmt(p.dateOfDeath);$("lifeStatus").value=lifeOf(p);syncLifeUi();$("birthPlace").value=p.birthPlace||"";$("birthRegion").value=p.birthRegion||"";$("birthCountry").value=p.birthCountry||"";$("deathPlace").value=p.deathPlace||"";$("location").value=p.currentLocation||"";$("occupation").value=p.occupation||"";$("notes").value=p.notes||"";relationView(p)}
+function select(id){let p=person(id);if(!p)return;if(canvasMode!=="review"&&cy&&!cy.getElementById(id).length&&!searching()&&unhide(id))draw("");selected=p;cy.nodes().unselect();cy.getElementById(id).select();$("empty").classList.add("hidden");$("editor").classList.remove("hidden");$("pname").textContent=name(p);$("pid").textContent=p.id+" · "+LIFE_LABEL[lifeOf(p)];$("avatar").textContent=(name(p)||"?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();$("first").value=p.firstName||"";$("middle").value=p.middleName||"";$("family").value=p.familyName||"";$("display").value=p.displayName||"";$("gender").value=p.gender||"";$("nick").value=p.nickname||"";$("maiden").value=p.maidenName||"";$("dob").value=fmt(p.dateOfBirth);$("dod").value=fmt(p.dateOfDeath);$("lifeStatus").value=lifeOf(p);syncLifeUi();$("birthPlace").value=p.birthPlace||"";$("birthRegion").value=p.birthRegion||"";$("birthCountry").value=p.birthCountry||"";$("deathPlace").value=p.deathPlace||"";$("location").value=p.currentLocation||"";$("occupation").value=p.occupation||"";$("notes").value=p.notes||"";relationView(p)}
 function relationView(p){let ps=parents().filter(r=>r.childId===p.id).map(r=>(r.role||"parent")+": "+name(person(r.parentId))),cs=parents().filter(r=>r.parentId===p.id).sort((a,b)=>(a.order||99)-(b.order||99)).map(r=>(r.order||"")+" · "+name(person(r.childId))),ss=spouses().filter(r=>r.personAId===p.id||r.personBId===p.id).map(r=>name(person(r.personAId===p.id?r.personBId:r.personAId)));$("rels").innerHTML='<div><span>Parents</span><b>'+esc(ps.join(" · ")||"None")+'</b></div><div><span>Spouses</span><b>'+esc(ss.join(" · ")||"None")+'</b></div><div><span>Children · ordered</span><b>'+esc(cs.join(" · ")||"None")+'</b></div>'}
 function focus(id){let n=cy.getElementById(id);if(n.length){cy.fit(n.closedNeighborhood(),90);n.select()}}
 function syncLifeUi(){const dead=$("lifeStatus").value==="deceased";$("dodWrap").classList.toggle("hidden",!dead);$("deathPlaceWrap").classList.toggle("hidden",!dead)}
@@ -331,6 +331,7 @@ function analyse(proposal){
 let rvMsg="",canvasMode="edit",basePos={},taggedNodes=new Set(),rv=null,rvBusy=false;
 const CY_STYLE=[
   {selector:"node",style:{"background-color":"#15223a","border-color":"#415270","border-width":2,"label":"data(label)","color":"#eef3fb","font-size":13,"font-weight":700,"text-wrap":"wrap","text-max-width":NODE_W-14,"text-valign":"center","text-halign":"center","width":NODE_W,"height":NODE_H,"shape":"round-rectangle"}},
+  {selector:"node.folded",style:{"underlay-color":"#8d7dff","underlay-opacity":.3,"underlay-padding":5,"underlay-shape":"round-rectangle"}},
   {selector:"node:selected",style:{"border-color":"#8d7dff","border-width":4,"underlay-color":"#6f63ef","underlay-opacity":.3,"underlay-padding":9}},
   {selector:"edge",style:{"curve-style":"taxi","taxi-direction":"downward","taxi-turn":"50%","line-color":"#52647f","width":2,"target-arrow-shape":"none"}},
   {selector:"edge.sp",style:{"curve-style":"straight","line-style":"dashed","line-color":"#b388ff","width":3}},
@@ -352,6 +353,27 @@ const CY_STYLE=[
   {selector:".dim",style:{"opacity":.18}}
 ];
 let editHandles=null;
+/* Branch folding (view only): see tree-layout.js branchView. Shared in spirit with the public page; remembered in this browser. */
+let collapsed=new Set(),branchInfo={visible:new Set(),hidden:{},canCollapse:new Set()};
+try{collapsed=new Set(JSON.parse(localStorage.getItem("familyGraphCollapsed")||"[]"))}catch(_){}
+const saveCollapsed=()=>{try{localStorage.setItem("familyGraphCollapsed",JSON.stringify([...collapsed]))}catch(_){}};
+const searching=()=>!!($("search")&&$("search").value.trim());
+function toggleBranch(id){
+  const n=cy&&cy.getElementById(id),before=n&&n.length?n.renderedPosition():null;
+  if(collapsed.has(id))collapsed.delete(id);else collapsed.add(id);
+  saveCollapsed();draw($("search").value);
+  const m=cy&&cy.getElementById(id);if(before&&m&&m.length){const a=m.renderedPosition();cy.panBy({x:before.x-a.x,y:before.y-a.y})}
+}
+function collapseAll(){
+  const all=treeNodes("").map(p=>p.id),v=branchView(all,parents(),spouses(),new Set());
+  collapsed=[...collapsed].some(x=>v.canCollapse.has(x))?new Set():new Set(v.canCollapse);saveCollapsed();draw($("search").value)
+}
+function unhide(id){
+  if(!collapsed.size)return false;
+  const next=unfold(treeNodes("").map(p=>p.id),parents(),spouses(),collapsed,id);
+  if(next.size===collapsed.size)return false;
+  collapsed=next;saveCollapsed();return true
+}
 function detachEditHandles(){if(editHandles){editHandles.destroy();editHandles=null}}
 function makeCy(elements){
   detachEditHandles();
@@ -363,14 +385,19 @@ function setCanvasHint(){const t=document.querySelector(".tip");if(!t)return;t.t
 /* Edit canvas: the editable tree (needs the GitHub token). */
 function draw(q){
   if(!data||canvasMode==="review")return;
-  const people=treeNodes(q||""),ids=people.map(p=>p.id),ok=new Set(ids),pcs=parents().filter(r=>ok.has(r.parentId)&&ok.has(r.childId)),sps=spouses().filter(r=>ok.has(r.personAId)&&ok.has(r.personBId));
+  let people=treeNodes(q||"");
+  {const all=new Set(people.map(p=>p.id));branchInfo=branchView([...all],parents().filter(r=>all.has(r.parentId)&&all.has(r.childId)),spouses().filter(r=>all.has(r.personAId)&&all.has(r.personBId)),q?new Set():collapsed);people=people.filter(p=>branchInfo.visible.has(p.id))}
+  const ids=people.map(p=>p.id),ok=new Set(ids),pcs=parents().filter(r=>ok.has(r.parentId)&&ok.has(r.childId)),sps=spouses().filter(r=>ok.has(r.personAId)&&ok.has(r.personBId));
   const pos=treeLayout(ids,pcs,sps),els=[];
-  people.forEach(p=>els.push({group:"nodes",data:{id:p.id,label:name(p)},position:pos[p.id]}));
+  people.forEach(p=>{const folded=!q&&collapsed.has(p.id)&&branchInfo.hidden[p.id]>0;els.push({group:"nodes",data:{id:p.id,label:name(p)+(folded?"\n▸ "+branchInfo.hidden[p.id]+" hidden":"")},position:pos[p.id],classes:folded?"folded":""})});
   pcs.forEach(r=>els.push({group:"edges",data:{id:"pc"+r.parentId+r.childId,source:r.parentId,target:r.childId}}));
   sps.forEach(r=>els.push({group:"edges",data:{id:"sp"+r.personAId+r.personBId,source:r.personAId,target:r.personBId},classes:"sp"}));
   makeCy(els);cy.fit(undefined,60);
   cy.on("tap","node",e=>{showTab("edit");select(e.target.id())});cy.on("dblclick","node",e=>focus(e.target.id()));
+  const nFold=[...collapsed].filter(x=>x in branchInfo.hidden).length;
+  $("collapseBtn").textContent=nFold?"⇱ Expand all":"⇲ Collapse all";$("collapseBtn").classList.toggle("hidden",!!q||!branchInfo.canCollapse.size);
   editHandles=NodeHandles.attach(cy,{
+    branch:{has:id=>!searching()&&branchInfo.canCollapse.has(id),collapsed:id=>collapsed.has(id)&&(branchInfo.hidden[id]||0)>0,count:id=>branchInfo.hidden[id]||0,onToggle:toggleBranch},
     handles:[{kind:"parent",side:"top",title:"Add a parent",label:"Parent"},{kind:"child",side:"bottom",title:"Add a child",label:"Child"},{kind:"spouse",side:"right",title:"Add a spouse or partner",label:"Spouse"}],
     label:id=>name(person(id)),
     onAdd:(kind,id)=>{select(id);kind==="spouse"?spouseModal():relationshipModal(kind)},
@@ -394,7 +421,7 @@ function buildReviewCanvas(){
 }
 async function enterReviewCanvas(){
   if(!adminToken)return;
-  canvasMode="review";
+  canvasMode="review";$("collapseBtn").classList.add("hidden");
   if(!graph)await loadGraph();
   if(canvasMode!=="review")return;
   if(!graph){setCanvasHint();return}
@@ -679,7 +706,7 @@ $("togglePassword").onclick=()=>{const i=$("password"),b=$("togglePassword");i.t
 $("login").onclick=unlock;$("connect").onclick=connect;
 $("refresh").onclick=async()=>{if(token){try{await loadData()}catch(e){toast(e.message,"err")}}if(adminToken)loadRequests()};
 $("lock").onclick=()=>endSession("Locked.");
-$("treeMode").onclick=()=>{layout="tree";draw($("search").value)};$("networkMode").onclick=()=>{layout="network";draw($("search").value)};$("fit").onclick=()=>cy?.fit(undefined,80);$("search").oninput=e=>canvasMode==="review"?reviewSearch(e.target.value):draw(e.target.value);$("clearSearch").onclick=()=>{$("search").value="";canvasMode==="review"?reviewSearch(""):draw()};
+$("treeMode").onclick=()=>{layout="tree";draw($("search").value)};$("networkMode").onclick=()=>{layout="network";draw($("search").value)};$("collapseBtn").onclick=collapseAll;$("fit").onclick=()=>cy?.fit(undefined,80);$("search").oninput=e=>canvasMode==="review"?reviewSearch(e.target.value):draw(e.target.value);$("clearSearch").onclick=()=>{$("search").value="";canvasMode==="review"?reviewSearch(""):draw()};
 $("addPerson").onclick=()=>{if(!data){toast("Connect GitHub first to edit the tree.");return}addPersonModal()};
 $("childBtn").onclick=()=>relationshipModal("child");$("parentBtn").onclick=()=>relationshipModal("parent");$("spouseBtn").onclick=()=>spouseModal();$("focusBtn").onclick=()=>selected&&focus(selected.id);
 $("save").onclick=guarded(saveSelected);$("archive").onclick=guarded(archive);$("restore").onclick=guarded(restore);

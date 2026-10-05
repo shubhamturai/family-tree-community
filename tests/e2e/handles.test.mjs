@@ -234,3 +234,89 @@ describe("living / deceased without exact dates", () => {
     assert.equal(g.persons.find((p) => p.firstName === "Ancestor").lifeStatus, "deceased");
   });
 });
+
+describe("collapsible branches and focus", () => {
+  let app, page, family, root, rootMate, kid, kidSpouse, grandKid;
+  const visible = () => page.evaluate(() => cy.nodes().map((n) => n.id()).sort());
+  before(async () => {
+    family = bigFamily(3, 2);
+    app = await startApp({ graph: family });
+    page = app.page;
+    await app.open("/index.html");
+    await sleep(1300);
+    [root, rootMate] = [family.persons[0].id, family.persons[1].id];
+    kid = family.relationships.parentChild[0].childId;
+    kidSpouse = family.relationships.spouses.find((s) => s.personAId === kid).personBId;
+    grandKid = family.relationships.parentChild.find((r) => r.parentId === kid).childId;
+  });
+  after(() => app.close());
+
+  test("hover a parent → ▾ Collapse folds everything below; the node says how many are hidden; ▸ opens it again", async () => {
+    assert.equal((await visible()).length, 10);
+    await hover(page, root);
+    const pill = page.locator(".nh-layer.on .nh-branch.show");
+    await pill.waitFor({ timeout: 3000 });
+    assert.match(await pill.innerText(), /Collapse/);
+    await pill.click(); await sleep(500);
+    assert.deepEqual(await visible(), [root, rootMate].sort(), "only the couple remains");
+    assert.match(await page.evaluate((id) => cy.getElementById(id).data("label"), root), /▸ 8 hidden/);
+    assert.equal(await page.evaluate(() => document.getElementById("collapseBtn").textContent.trim()), "⇱ Expand all");
+    await hover(page, root);
+    await pill.waitFor({ timeout: 3000 });
+    assert.match(await pill.innerText(), /▸ 8 hidden/);
+    await pill.click(); await sleep(500);
+    assert.equal((await visible()).length, 10);
+  });
+
+  test("double-click toggles too; collapsing a child keeps their partner but hides their kids", async () => {
+    const c = await center(page, kid);
+    await page.mouse.dblclick(c.x, c.y); await sleep(500);
+    const v = await visible();
+    assert.ok(v.includes(kid) && v.includes(kidSpouse), "the couple stays together");
+    assert.ok(!v.includes(grandKid), "their children fold away");
+    await page.evaluate((id) => toggleBranch(id), kid); await sleep(300);
+    assert.ok((await visible()).includes(grandKid));
+  });
+
+  test("Collapse all folds every branch down to the founders; Expand all restores; the choice survives a reload", async () => {
+    await page.click("#collapseBtn"); await sleep(500);
+    assert.deepEqual(await visible(), [root, rootMate].sort());
+    await page.reload(); await sleep(1500);
+    assert.deepEqual(await visible(), [root, rootMate].sort(), "remembered in this browser");
+    await page.click("#collapseBtn"); await sleep(500);
+    assert.equal((await visible()).length, 10);
+    await page.reload(); await sleep(1500);
+    assert.equal((await visible()).length, 10);
+  });
+
+  test("anything you pick, search or add inside a folded branch opens it automatically", async () => {
+    await page.click("#collapseBtn"); await sleep(400);
+    await page.click('#people [data-id="' + grandKid + '"]'); await sleep(700);
+    assert.ok((await visible()).includes(grandKid), "picked from the Everyone list");
+    assert.equal(await page.evaluate(() => selectedId), grandKid);
+    // fold everything again, then add a child to a folded person: the new child must not vanish under the fold
+    await page.evaluate(() => { collapsed.clear(); collapseAll(); });
+    await sleep(400);
+    assert.deepEqual(await visible(), [root, rootMate].sort());
+    await page.evaluate((id) => openQuickAdd("child", id, { x: 300, y: 200 }), kid);
+    await page.fill("#qaFirst", "Newborn"); await page.keyboard.press("Enter"); await sleep(800);
+    assert.equal(await page.evaluate(() => cy.nodes().filter((n) => n.data("label").includes("Newborn")).length), 1, "the new child is shown, not hidden under the fold");
+    assert.ok((await visible()).includes(kid), "their parent was opened too");
+  });
+
+  test("Focus shows only one family line and Exit focus brings everything back; the Person panel offers both views", async () => {
+    await page.evaluate(() => { collapsed.clear(); saveCollapsed(); layoutPos = {}; draw(""); });
+    await page.evaluate((id) => show(byId(id)), kid);
+    await page.click('[data-focus]'); await sleep(600);
+    const v = await visible();
+    assert.ok(v.includes(root) && v.includes(kid) && v.includes(grandKid) && v.includes(kidSpouse));
+    const other = family.relationships.parentChild.find((r) => r.parentId === root && r.childId !== kid).childId;
+    assert.ok(!v.includes(other), "the sibling's line is out of focus");
+    assert.equal(await page.isVisible("#focusBtn"), true);
+    await page.click("#focusBtn"); await sleep(500);
+    assert.ok((await visible()).includes(other));
+    assert.equal(await page.isVisible("#focusBtn"), false);
+    await page.evaluate((id) => show(byId(id)), kid); await sleep(200);
+    assert.equal(await page.isVisible("[data-branch]"), true);
+  });
+});

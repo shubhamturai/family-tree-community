@@ -43,3 +43,55 @@ function treeLayout(ids,pcs,sps){
   if(isFinite(minX))ids.forEach(i=>{pos[i].x-=minX});
   return pos
 }
+
+/*
+ * branchView(ids, parentChildLinks, spouseLinks, collapsed) -> { visible:Set, hidden:{[id]:n}, canCollapse:Set }
+ *   Collapsing a person hides the people who are only reachable through them: their descendants, and the
+ *   married-in partners of those descendants. A child stays visible if another, non-collapsed parent shows them.
+ *   Spouses of anyone visible are always visible, so a collapsed couple stays together.
+ *   hidden[id] is how many people collapsing `id` (alone, given the rest) is hiding; canCollapse = people with children.
+ */
+function branchView(ids,pcs,sps,collapsed){
+  const have=new Set(ids),kids=new Map(),pars=new Map(),mates=new Map();
+  const add=(m,k,v)=>{(m.get(k)||m.set(k,[]).get(k)).push(v)};
+  pcs.forEach(r=>{if(have.has(r.parentId)&&have.has(r.childId)){add(kids,r.parentId,r.childId);add(pars,r.childId,r.parentId)}});
+  sps.forEach(r=>{if(have.has(r.personAId)&&have.has(r.personBId)){add(mates,r.personAId,r.personBId);add(mates,r.personBId,r.personAId)}});
+  const canCollapse=new Set(kids.keys());
+  /* Where a walk starts: parentless people, except those married into someone who has parents (they belong to that branch). */
+  const seeds=ids.filter(x=>!pars.has(x)&&!(mates.get(x)||[]).some(m=>pars.has(m)));
+  const walk=skip=>{
+    const vis=new Set(),st=[],see=x=>{if(!vis.has(x)){vis.add(x);st.push(x)}};
+    seeds.forEach(see);
+    while(st.length){
+      const x=st.pop();(mates.get(x)||[]).forEach(see);
+      if(skip.has(x))continue;
+      (kids.get(x)||[]).forEach(c=>{if(!(pars.get(c)||[]).some(p=>p!==x&&skip.has(p)))see(c)})
+    }
+    return vis
+  };
+  const want=new Set([...(collapsed||[])].filter(x=>canCollapse.has(x)));
+  if(!want.size)return{visible:new Set(ids),hidden:{},canCollapse};
+  const first=walk(want),eff=new Set([...want].filter(x=>first.has(x))),visible=walk(eff),hidden={};
+  eff.forEach(x=>{const rest=new Set(eff);rest.delete(x);hidden[x]=walk(rest).size-visible.size});
+  if(!visible.size)return{visible:new Set(ids),hidden:{},canCollapse};   // corrupt data (a loop): show everyone rather than no one
+  return{visible,hidden,canCollapse}
+}
+
+/* unfold(ids, parentChildLinks, spouseLinks, collapsed, id) -> a Set like `collapsed` in which `id` is visible, opening the nearest folds first. */
+function unfold(ids,pcs,sps,collapsed,id){
+  const next=new Set(collapsed||[]);
+  if(!next.size||branchView(ids,pcs,sps,next).visible.has(id))return next;
+  const seen=new Set([id]);let frontier=[id];
+  while(frontier.length){
+    const nxt=[];
+    for(const x of frontier){
+      const around=[...pcs.filter(r=>r.childId===x).map(r=>r.parentId),...sps.filter(r=>r.personAId===x||r.personBId===x).map(r=>r.personAId===x?r.personBId:r.personAId)];
+      for(const y of around){
+        if(seen.has(y))continue;seen.add(y);nxt.push(y);
+        if(next.delete(y)&&branchView(ids,pcs,sps,next).visible.has(id))return next
+      }
+    }
+    frontier=nxt
+  }
+  return next
+}

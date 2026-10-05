@@ -200,4 +200,22 @@ describe("editing tab", () => {
     await app.page.click("#modalCancel");
     assert.deepEqual(app.errors.filter((e) => !/409/.test(e)), []);
   });
+
+  test("Admin Studio's edit canvas can fold branches too, and selecting a hidden person opens the fold", async () => {
+    const p = app.page, vis = () => p.evaluate(() => cy.nodes().length);
+    await p.evaluate(() => showTab("edit"));
+    await p.fill("#search", ""); await sleep(500);
+    const total = await vis(), root = await p.evaluate(() => data.persons[0].id), deep = await p.evaluate(() => data.persons[data.persons.length - 1].id);
+    await p.evaluate((id) => toggleBranch(id), root); await sleep(400);
+    const folded = await vis();
+    assert.ok(folded < total / 2, "most of the tree folds away: " + folded + " of " + total);
+    assert.match(await p.evaluate((id) => cy.getElementById(id).data("label"), root), /▸ \d+ hidden/);
+    await p.evaluate((id) => select(id), deep); await sleep(500);
+    assert.equal(await p.evaluate((id) => cy.getElementById(id).length, deep), 1, "selecting someone inside the fold reveals them");
+    await p.click("#collapseBtn"); await sleep(400);
+    assert.equal(await p.evaluate(() => document.getElementById("collapseBtn").textContent.trim()), "⇱ Expand all");
+    await p.click("#collapseBtn"); await sleep(400);
+    assert.equal(await vis(), total);
+    assert.deepEqual(app.errors.filter((e) => !/409/.test(e)), []);
+  });
 });

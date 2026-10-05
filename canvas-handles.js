@@ -6,6 +6,10 @@
  *     handles: [{kind, side, title, label}],     // optional; defaults: parent↑ child↓ spouse→ sibling←
  *     onAdd(kind, srcId, {x, y}),                // a handle was clicked (or activated with the keyboard)
  *     onDrop(kind, srcId, targetId|null, {x, y}) // a handle was dragged: onto another node, or onto empty canvas
+ *     branch: {                                  // optional collapse/expand pill under a person
+ *       has(id), collapsed(id), count(id),       //   can it collapse? is it? how many people are hidden?
+ *       onToggle(id)
+ *     }
  *   });
  *   h.refresh();  h.destroy();
  *
@@ -31,6 +35,8 @@
     ".nh-layer.dragging .nh-btn{opacity:.35}.nh-layer.dragging .nh-btn.nh-active{opacity:1}" +
     ".nh-rubber{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}" +
     ".nh-hit{position:absolute;border:3px solid #35d39a;border-radius:12px;background:#35d39a22;pointer-events:none;display:none}" +
+    ".nh-branch{position:absolute;margin:-12px 0 0 -26px;height:24px;min-width:52px;padding:0 9px;border-radius:999px;border:2px solid #fff;background:#243049;color:#fff;font:700 12px/1 system-ui,sans-serif;box-shadow:0 4px 14px #0006;cursor:pointer;display:none;pointer-events:none;white-space:nowrap}" +
+    ".nh-layer.on .nh-branch.show{display:block;pointer-events:auto}.nh-branch:hover,.nh-branch:focus-visible{background:var(--ring,#5b4fe7)}" +
     "@media(prefers-reduced-motion:reduce){.nh-layer,.nh-btn{transition:none}}";
   function injectCss() {
     if (document.getElementById("nh-style")) return;
@@ -54,6 +60,16 @@
       if (hoverId && cy.getElementById(hoverId).length) return hoverId;
       var s = cy.$("node:selected"); return s.length ? s[0].id() : null;
     };
+    var branch = null;
+    if (opts.branch) {
+      branch = document.createElement("button"); branch.type = "button"; branch.className = "nh-branch"; layer.appendChild(branch);
+      branch.addEventListener("pointerenter", function () { overHandle = true; clearTimeout(hideTimer); });
+      branch.addEventListener("pointerleave", function () { overHandle = false; scheduleHide(); });
+      branch.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+      branch.addEventListener("click", function (e) {
+        e.stopPropagation(); var id = layer.dataset.node; if (id) { opts.branch.onToggle(id); schedule(); }
+      });
+    }
     var buttons = defs.map(function (h) {
       var b = document.createElement("button"); b.type = "button"; b.className = "nh-btn nh-" + h.side; b.textContent = "+";
       b.title = h.title; b.dataset.kind = h.kind; b.dataset.label = h.label || h.kind; b.setAttribute("aria-label", h.title);
@@ -63,16 +79,27 @@
     function place() {
       raf = 0;
       if (!alive) return;
-      var id = enabled() ? cur() : null, n = id && cy.getElementById(id);
+      var on = enabled(), id = (on || branch) ? cur() : null, n = id && cy.getElementById(id);
       if (!n || !n.length || cy.zoom() < (opts.minZoom || 0.2)) { layer.classList.remove("on"); layer.dataset.node = ""; return; }
       var bb = n.renderedBoundingBox({ includeLabels: false, includeOverlays: false, includeEdges: false, includeUnderlays: false });
       var cx = (bb.x1 + bb.x2) / 2, cyy = (bb.y1 + bb.y2) / 2, o = OFFSET;
       buttons.forEach(function (x) {
+        x.b.style.display = on ? "" : "none";
         var s = x.h.side, px = cx, py = cyy;
         if (s === "top") py = bb.y1 - o; else if (s === "bottom") py = bb.y2 + o; else if (s === "right") px = bb.x2 + o; else px = bb.x1 - o;
         x.b.style.left = px + "px"; x.b.style.top = py + "px";
         x.b.setAttribute("aria-label", x.h.title + " — " + (opts.label ? opts.label(id) : id));
       });
+      if (branch) {
+        var can = opts.branch.has(id), isC = can && opts.branch.collapsed(id), cnt = can ? opts.branch.count(id) : 0;
+        branch.classList.toggle("show", !!can);
+        if (can) {
+          branch.textContent = isC ? "▸ " + cnt + " hidden" : "▾ Collapse";
+          branch.title = isC ? "Show the " + cnt + " people hidden under this person" : "Hide everyone below this person";
+          branch.setAttribute("aria-label", (isC ? "Expand branch — " : "Collapse branch — ") + (opts.label ? opts.label(id) : id));
+          branch.style.left = (cx + 26) + "px"; branch.style.top = (bb.y2 + o) + "px"; branch.style.marginLeft = "0px";   // beside the + child handle
+        }
+      }
       layer.dataset.node = id; layer.classList.add("on");
     }
     function schedule() { if (!raf && alive) raf = requestAnimationFrame(place); }

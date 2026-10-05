@@ -22,6 +22,8 @@ Git is the database, so every approved change is a commit: a complete, restorabl
 - Explore a clear generational tree (couples side by side, children below parents), search by name, switch to a force-directed network view, and highlight any person's direct family line.
 - Find anyone in the **Everyone** list (also the screen-reader/keyboard-friendly way to browse), works on phones.
 - **Edit like a drawing tool**: hover (or tap) a person and four **+** handles appear — parent ↑, child ↓, spouse →, sibling ←. Click one for a quick-add popover (Enter to add, or link someone already in the tree), or **drag a + onto another person** to connect them (drop on empty space to add someone new there). Everyone you place stays where it is; new people appear next to their relatives; **Tidy** re-arranges the whole tree. Undo/redo (`Ctrl+Z` / `Ctrl+Shift+Z`) work for every edit.
+- **Big trees stay readable**: every person with children has a **▾ Collapse / ▸ N hidden** pill under them (or double-click them) that folds their whole branch away — a married-in partner and their family fold with it, so different surnames stop colliding. **Collapse all / Expand all** folds the tree down to its founders, and **Focus on this family line** (Person panel) shows only one person's ancestors, descendants and spouses. Folds are remembered per browser; selecting, searching for or adding someone inside a fold opens it automatically.
+- **Not everyone has exact dates**: mark a person **Living / Deceased / Not sure** — no date needed — and give birth/death as a full date, `MM/YYYY` or just a year.
 - **Suggest changes**: your edits are a draft until you review the summary, add an optional name and reason, and send. You get a **tracking link**; the Changes tab lists your requests and the reviewer's decision.
 - **Export** the tree as JSON or **GEDCOM** (opens in Ancestry, FamilySearch, Gramps, …), or print it. Light and dark themes.
 
@@ -39,7 +41,7 @@ Git is the database, so every approved change is a commit: a complete, restorabl
 | `index.html` | Public site: tree, editing, suggestions, tracking, export |
 | `admin.html` | Admin Studio: in-tree review, direct editing |
 | `tree-layout.js` | Generational layout shared by both pages (unit-tested) |
-| `canvas-handles.js` | The draw.io-style **+** handles and drag-to-connect, shared by both pages |
+| `canvas-handles.js` | The draw.io-style **+** handles, drag-to-connect and the collapse pill, shared by both pages |
 | `data/family.json` | **The family data** — the single source of truth |
 | `data/config.json` | Where the API lives (`apiBase`) |
 | `backend/src/*` | Worker: `index` (routes), `auth`, `validate`, `graph`, `github`, `requests`, `ratelimit`, `notify`, `http`, `util` |
