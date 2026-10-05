@@ -397,7 +397,7 @@ function stablePositions(people,pcs,sps){
 let lastDrawKey="",lineageOn=localStorage.getItem("familyGraphLineage")!=="off";
 const mobileView=()=>matchMedia("(max-width:1050px)").matches;
 const yearOf=d=>d?String(d).slice(0,4):"";
-const years=p=>{const b=yearOf(p.dateOfBirth),d=yearOf(p.dateOfDeath),dead=lifeOf(p)==="deceased";return dead?(b||d?(b||"?")+"–"+(d||"?"):"deceased"):b?b+"–":""};
+const years=p=>{const b=yearOf(p.dateOfBirth),d=yearOf(p.dateOfDeath),dead=lifeOf(p)==="deceased";return dead?(b||d?(b||"?")+"–"+(d||"?"):""):b?b+"–":""};
 function cyStyle(hier){
   const css=getComputedStyle(document.documentElement),v=n=>css.getPropertyValue(n).trim();
   return [
@@ -554,8 +554,9 @@ async function showRequestsLink(){
   }catch(_){}
 }
 function unlockAdmin(){
-  openModal("Administrator sign-in",'<label>Admin password<input id="adminPw" type="password" autocomplete="current-password" aria-describedby="adminPwHint"></label><p id="adminPwHint" class="hint">Signing in lets you save changes straight to the published tree and review community requests.</p><div id="adminPwStatus" class="status bad hidden"></div>',signInAdmin,"Sign in");
-  $("adminPw").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();signInAdmin()}}
+  openModal("Administrator sign-in",'<label>Admin password<span style="display:flex;gap:7px;align-items:center"><input id="adminPw" type="password" autocomplete="current-password" aria-describedby="adminPwHint" style="flex:1"><button id="adminPwToggle" type="button" class="btn small" aria-label="Show password" aria-pressed="false" style="min-width:58px">Show</button></span></label><p id="adminPwHint" class="hint">Signing in lets you save changes straight to the published tree and review community requests.</p><div id="adminPwStatus" class="status bad hidden"></div>',signInAdmin,"Sign in");
+  $("adminPw").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();signInAdmin()}};
+  $("adminPwToggle").onclick=()=>{const i=$("adminPw"),show=i.type==="password";i.type=show?"text":"password";$("adminPwToggle").textContent=show?"Hide":"Show";$("adminPwToggle").setAttribute("aria-label",show?"Hide password":"Show password");$("adminPwToggle").setAttribute("aria-pressed",String(show));i.focus()}
 }
 async function signInAdmin(){
   const pw=$("adminPw").value,bad=m=>{$("adminPwStatus").textContent=m;$("adminPwStatus").classList.remove("hidden")};
