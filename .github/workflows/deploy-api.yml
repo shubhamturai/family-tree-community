@@ -72,30 +72,30 @@ jobs:
           set -euo pipefail
 
           echo "=== Worker health ==="
-          curl --fail-with-body --silent --show-error --retry 12 --retry-delay 5 --retry-all-errors             https://ssk-community.shubham-turai.workers.dev/health
+          curl --fail-with-body --silent --show-error --retry 12 --retry-delay 5 --retry-all-errors             https://ssk.community-family-tree.workers.dev/health
           echo
 
           echo "=== Worker-hosted UI ==="
-          curl --fail-with-body --silent --show-error --output /tmp/worker-index.html             https://ssk-community.shubham-turai.workers.dev/
+          curl --fail-with-body --silent --show-error --output /tmp/worker-index.html             https://ssk.community-family-tree.workers.dev/
           grep -q "Family Graph" /tmp/worker-index.html
 
           echo "=== Worker-hosted config ==="
-          curl --fail-with-body --silent --show-error             https://ssk-community.shubham-turai.workers.dev/data/config.json             | grep -q "ssk-community.shubham-turai.workers.dev"
+          curl --fail-with-body --silent --show-error             https://ssk.community-family-tree.workers.dev/data/config.json             | grep -q "ssk.community-family-tree.workers.dev"
 
           echo "=== API unauthenticated admin route ==="
-          STATUS="$(curl --silent --show-error --output /tmp/admin-response --write-out "%{http_code}"             -X POST             -H "Content-Type: application/json"             --data "{}"             https://ssk-community.shubham-turai.workers.dev/admin/apply)"
+          STATUS="$(curl --silent --show-error --output /tmp/admin-response --write-out "%{http_code}"             -X POST             -H "Content-Type: application/json"             --data "{}"             https://ssk.community-family-tree.workers.dev/admin/apply)"
           test "$STATUS" = "401"
           cat /tmp/admin-response
           echo
 
           echo "=== API unauthenticated admin check ==="
-          STATUS="$(curl --silent --show-error --output /tmp/admin-check-response --write-out "%{http_code}"             https://ssk-community.shubham-turai.workers.dev/admin/check)"
+          STATUS="$(curl --silent --show-error --output /tmp/admin-check-response --write-out "%{http_code}"             https://ssk.community-family-tree.workers.dev/admin/check)"
           test "$STATUS" = "401"
           cat /tmp/admin-check-response
           echo
 
           echo "=== API D1 request validation ==="
-          STATUS="$(curl --silent --show-error --output /tmp/request-response --write-out "%{http_code}"             -X POST             -H "Content-Type: application/json"             --data "{}"             https://ssk-community.shubham-turai.workers.dev/requests)"
+          STATUS="$(curl --silent --show-error --output /tmp/request-response --write-out "%{http_code}"             -X POST             -H "Content-Type: application/json"             --data "{}"             https://ssk.community-family-tree.workers.dev/requests)"
           test "$STATUS" = "400"
           cat /tmp/request-response
           echo
