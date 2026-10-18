@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><script>(function(){if(location.hostname==="shubhamturai.github.io"){var p=location.pathname.replace(/^\/family-tree-community/,"")||"/";location.replace("https://family-tree-community.shubham-turai.workers.dev"+p+location.search+location.hash)}})();</script>
+<head><script>(function(){if(location.hostname==="shubhamturai.github.io"){var p=location.pathname.replace(/^\/family-tree-community/,"")||"/";location.replace("https://ssk-community.family-tree.workers.dev"+p+location.search+location.hash)}})();</script>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Family Graph</title>
 <meta name="description" content="An interactive, community-editable family tree. Explore generations, search relatives, and suggest corrections for the family to review.">
@@ -631,7 +631,7 @@ function openExport(){
   $("expGed").onclick=()=>downloadFile("family-tree.ged",buildGedcom(src()),"text/plain");
   $("expPrint").onclick=()=>{closeModal();setTimeout(()=>{if(cy)cy.fit(undefined,40);window.print()},150)}
 }
-const REQUEST_API_FALLBACK="https://family-tree-community.shubham-turai.workers.dev",MINE_KEY="familyGraphMyRequests",WHO_KEY="familyGraphContributor";
+const REQUEST_API_FALLBACK="https://ssk-community.family-tree.workers.dev",MINE_KEY="familyGraphMyRequests",WHO_KEY="familyGraphContributor";
 async function apiBase(){let cfg={};try{const r=await fetch("./data/config.json?"+Date.now());if(r.ok)cfg=await r.json()}catch(_){}return (cfg.apiBase||REQUEST_API_FALLBACK).replace(/\/$/,"")}
 const readMine=()=>{try{return JSON.parse(localStorage.getItem(MINE_KEY)||"[]")}catch(_){return []}};
 function rememberRequest(id,n){const l=readMine().filter(x=>x.id!==id);l.unshift({id,at:new Date().toISOString(),n});try{localStorage.setItem(MINE_KEY,JSON.stringify(l.slice(0,20)))}catch(_){}}
