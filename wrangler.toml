@@ -1,5 +1,5 @@
 # wrangler.toml
-name = "ssk-community"
+name = "ssk"
 pages_build_output_dir = "./cloudflare-pages-dist"
 compatibility_date = "2026-09-19"
 
