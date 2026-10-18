@@ -1,4 +1,4 @@
-name = "ssk-community"
+name = "ssk"
 main = "worker.js"
 compatibility_date = "2026-09-19"
 workers_dev = true

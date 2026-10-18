@@ -35,7 +35,7 @@
 | Approval fails with "Stale request" | The tree changed while reviewing; reopen the request (it is re-checked against the current tree) |
 | Request stuck in `processing` | The Worker died between committing and recording the result. Check the commit history; if the change is there, set the row to `approved`, otherwise to `pending` |
 | New approvals do not show up on the public site | The live route is immediate; the static copy follows after the deploy workflow finishes |
-| Red check "Workers Builds: ssk-community" on pull requests | The Cloudflare Git integration is a second, redundant deploy path (GitHub Actions already deploys). Disconnect it in Cloudflare → Workers → Settings → Build, or fix its root directory/name to match `backend/wrangler.toml` |
+| Red check "Workers Builds: ssk" on pull requests | The Cloudflare Git integration is a second, redundant deploy path (GitHub Actions already deploys). Disconnect it in Cloudflare → Workers → Settings → Build, or fix its root directory/name to match `backend/wrangler.toml` |
 
 ## Privacy checklist
 
