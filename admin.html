@@ -57,6 +57,20 @@ kbd{font:600 10px ui-monospace,Menlo,monospace;border:1px solid #ffffff44;border
 @keyframes tin{from{transform:translateY(8px);opacity:0}}
 @media(prefers-reduced-motion:reduce){.toast{animation:none}}
 @media(max-width:1050px){.side.collapsed{display:none}}
+
+/* Responsive pass — dynamic viewport height, compact phone header, stacked toolbar with scroll, one-column forms, bigger touch targets */
+@supports(height:100dvh){.layout{height:calc(100dvh - 72px)}}
+@media(max-width:700px){
+@supports(height:100dvh){.layout{height:calc(100dvh - 60px)}}
+.top{height:60px;padding:0 10px;gap:8px;overflow:hidden}.brand{font-size:13px;gap:8px}.brand small{display:none}.mark{width:34px;height:34px}
+.top .actions{flex-wrap:nowrap;gap:4px}.top .btn{white-space:nowrap;padding:7px 8px}.chip{padding:5px 8px;font-size:11px}
+.side{top:60px;width:100%;border-left:0}.side-inner{padding:12px}.card{padding:12px}.grid2{grid-template-columns:1fr}
+.toolbar{top:8px;left:8px;right:8px;flex-direction:column;align-items:stretch;gap:8px}.search input{width:auto;flex:1;min-width:60px}
+.toolbar>.actions{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);padding-right:30px}.toolbar>.actions::-webkit-scrollbar{display:none}
+.toolbar>.actions .btn{white-space:nowrap}.toolbar>.actions .mobilePanel{order:-1}
+.rvbar{left:8px;right:8px;bottom:8px;padding:10px}.modal{padding:8px}.tip{display:none}#loginCard.mini{flex-direction:column;align-items:stretch}
+}
+@media(pointer:coarse){.btn.small{min-height:40px}input,select,textarea{font-size:16px}}
 </style>
 </head>
 <body>
