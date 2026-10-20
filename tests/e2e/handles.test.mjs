@@ -225,7 +225,9 @@ describe("living / deceased without exact dates", () => {
     await page.selectOption("#qaLife", "deceased");
     assert.equal(await page.isVisible("#qaDod"), true);
     await page.fill("#qaDod", "1901");
-    await page.keyboard.press("Enter"); await sleep(500);
+    await page.click("#qaAdd");
+    try { await page.waitForFunction(() => data.persons.some((p) => p.firstName === "Ancestor"), null, { timeout: 8000 }); }
+    catch (e) { throw new Error("the quick-add did not create the person; toast: " + (await app.toastText().catch(() => "(none)"))); }
     const added = await page.evaluate(() => data.persons.find((p) => p.firstName === "Ancestor"));
     assert.equal(added.lifeStatus, "deceased"); assert.equal(added.dateOfDeath, "1901");
     const proposal = await page.evaluate(() => buildProposal());

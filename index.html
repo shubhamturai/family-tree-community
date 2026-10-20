@@ -61,6 +61,18 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 .toast .tact{margin-left:6px;border:1px solid currentColor;background:transparent;color:inherit;border-radius:8px;padding:2px 9px;font-size:12px;font-weight:800;opacity:1}
 @media(max-width:700px){.qa{left:8px!important;right:8px;bottom:8px;top:auto!important;width:auto;max-width:none}.toasts{bottom:auto;top:72px}}
 @media print{.top,.side,.toolbar,.tip,.toasts,.skip,.connectionHint{display:none!important}.layout{display:block;height:auto}.canvas{height:96vh;border:0}html,body{background:#fff!important}}
+
+/* Responsive pass — dynamic viewport height, compact phone header, scrollable toolbar with edge fade, bigger touch targets */
+@supports(height:100dvh){.layout{height:calc(100dvh - 72px)}}
+@media(max-width:700px){
+@supports(height:100dvh){.layout{height:calc(100dvh - 60px)}}
+.top{overflow:hidden}.top>.actions{flex-wrap:nowrap}.top .btn{white-space:nowrap}
+.toolbar>.actions{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent);scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-right:30px}.toolbar>.actions::-webkit-scrollbar{display:none}
+.toolbar>.actions .openPanel{order:-1}
+.qa{max-height:72vh;max-height:72dvh;overflow:auto}
+}
+@media(max-width:520px){#modeChip{display:none}.brand>div:last-child{display:none}}
+@media(pointer:coarse){.btn.small{min-height:40px}.person-row{min-height:46px}input,select,textarea{font-size:16px}}
 </style>
 </head>
 <body>

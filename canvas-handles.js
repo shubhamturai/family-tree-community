@@ -37,6 +37,7 @@
     ".nh-hit{position:absolute;border:3px solid #35d39a;border-radius:12px;background:#35d39a22;pointer-events:none;display:none}" +
     ".nh-branch{position:absolute;margin:-12px 0 0 -26px;height:24px;min-width:52px;padding:0 9px;border-radius:999px;border:2px solid #fff;background:#243049;color:#fff;font:700 12px/1 system-ui,sans-serif;box-shadow:0 4px 14px #0006;cursor:pointer;display:none;pointer-events:none;white-space:nowrap}" +
     ".nh-layer.on .nh-branch.show{display:block;pointer-events:auto}.nh-branch:hover,.nh-branch:focus-visible{background:var(--ring,#5b4fe7)}" +
+    "@media(pointer:coarse){.nh-btn{width:38px;height:38px;margin:-19px 0 0 -19px;font-size:24px}.nh-branch{height:34px;font-size:13px;margin-top:-17px}}" +
     "@media(prefers-reduced-motion:reduce){.nh-layer,.nh-btn{transition:none}}";
   function injectCss() {
     if (document.getElementById("nh-style")) return;
