@@ -53,6 +53,7 @@ describe("layout works on phones, tablets and desktops", () => {
   }
 
   test("handles and the collapse pill get larger touch targets on touch screens", async () => {
+    await app.open("/index.html"); await sleep(1000);
     const css = await page.evaluate(() => { const s = document.getElementById("nh-style"); return s ? s.textContent : ""; });
     assert.match(css, /pointer:coarse[^}]*\.nh-btn\{width:38px/);
   });
