@@ -323,3 +323,63 @@ describe("collapsible branches and focus", () => {
     assert.equal(await page.isVisible("[data-branch]"), true);
   });
 });
+
+describe("children's birth order", () => {
+  let app, page, family, root, kids;
+  const xs = () => page.evaluate((k) => Object.fromEntries(k.map((id) => [id, Math.round(cy.getElementById(id).position("x"))])), kids);
+  const orderOnScreen = async () => { const p = await xs(); return [...kids].sort((a, b) => p[a] - p[b]); };
+  const listed = () => page.$$eval("#rels .kids .go", (els) => els.map((e) => e.dataset.go));
+  before(async () => {
+    family = bigFamily(2, 3);
+    app = await startApp({ graph: family });
+    page = app.page;
+    await app.open("/index.html"); await sleep(1300);
+    root = family.persons[0].id;
+    kids = family.relationships.parentChild.filter((r) => r.parentId === root).sort((a, b) => a.order - b.order).map((r) => r.childId);
+    await page.evaluate((id) => show(byId(id)), root); await sleep(300);
+  });
+  after(() => app.close());
+
+  test("the parent's panel lists the children oldest first, and the tree shows them left to right in that order", async () => {
+    assert.deepEqual(await listed(), kids);
+    assert.deepEqual(await orderOnScreen(), kids);
+    assert.equal(await page.isDisabled('#rels [data-mv="-1"][data-id="' + kids[0] + '"]'), true, "the first child cannot move earlier");
+    assert.equal(await page.isDisabled('#rels [data-mv="1"][data-id="' + kids[2] + '"]'), true, "the last child cannot move later");
+  });
+
+  test("↓ moves a child later: the list, the stored order and the tree all change, as one undoable step", async () => {
+    const before = await page.evaluate(() => changes.length);
+    await page.click('#rels [data-mv="1"][data-id="' + kids[0] + '"]'); await sleep(600);
+    const want = [kids[1], kids[0], kids[2]];
+    assert.deepEqual(await listed(), want);
+    assert.deepEqual(await orderOnScreen(), want, "the tree follows");
+    assert.equal(await page.evaluate(() => changes.length), before + 1);
+    assert.equal(await page.evaluate(() => changes[changes.length - 1].type), "SET_CHILD_ORDER");
+    assert.match(await page.innerText("#modeChip"), /Edit draft/, "editing switched on automatically");
+    await page.keyboard.press("Control+z"); await sleep(600);
+    assert.deepEqual(await listed(), kids, "undo restores the order");
+    assert.deepEqual(await orderOnScreen(), kids);
+  });
+
+  test("Sort by birth date orders by date (partial dates fine) and leaves undated children last; the request validates and applies", async () => {
+    await page.evaluate(([a, b, c]) => { byId(a).dateOfBirth = "1995"; byId(b).dateOfBirth = "1990-06"; byId(c).dateOfBirth = ""; }, kids);
+    await page.evaluate((id) => show(byId(id)), root);
+    await page.click("#rels [data-sortdob]"); await sleep(600);
+    const want = [kids[1], kids[0], kids[2]];
+    assert.deepEqual(await listed(), want);
+    assert.deepEqual(await orderOnScreen(), want);
+    await page.click("#rels [data-sortdob]"); await sleep(300);
+    assert.match(await app.toastText(), /Already in birth-date order/);
+    const proposal = await page.evaluate(() => buildProposal());
+    const g = bigFamily(2, 3);
+    assert.doesNotThrow(() => applyProposal(g, proposal));
+    const stored = g.relationships.parentChild.filter((r) => r.parentId === root).sort((a, b) => a.order - b.order).map((r) => r.childId);
+    assert.deepEqual(stored, want, "the server applies the same order");
+    assert.deepEqual(integrityIssues(g), []);
+  });
+
+  test("clicking a child's name in the list opens that child", async () => {
+    await page.click('#rels .go[data-go="' + kids[2] + '"]'); await sleep(400);
+    assert.equal(await page.evaluate(() => selectedId), kids[2]);
+  });
+});

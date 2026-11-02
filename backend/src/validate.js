@@ -101,6 +101,12 @@ export function sanitizeChange(c) {
       if (parentId === childId) throw new HttpError(400, "A person cannot be their own parent.");
       return { type: c.type, payload: { parentId, childId, role: ROLES.includes(p.role) ? p.role : "parent", order: order(p.order) } };
     }
+    case "SET_CHILD_ORDER": {
+      if (!Array.isArray(p.childIds) || p.childIds.length < 2 || p.childIds.length > 50) throw new HttpError(400, "Child order needs 2 to 50 children.");
+      const childIds = p.childIds.map((x) => id(x, "childIds"));
+      if (new Set(childIds).size !== childIds.length) throw new HttpError(400, "A child is listed twice.");
+      return { type: c.type, payload: { childIds } };
+    }
     case "ADD_SPOUSE": {
       const personAId = id(p.personAId, "personAId"), personBId = id(p.personBId, "personBId");
       if (personAId === personBId) throw new HttpError(400, "A person cannot be their own spouse.");

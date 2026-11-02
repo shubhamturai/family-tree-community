@@ -15,23 +15,29 @@ function pav(desired,offset){
   const out=[];blocks.forEach(b=>{const m=b.s/b.n;for(let k=0;k<b.n;k++)out.push(m+offset[out.length])});return out
 }
 function treeLayout(ids,pcs,sps){
-  const has=new Set(ids),gen={},par={},chi={},sp={};
+  const has=new Set(ids),gen={},par={},chi={},sp={},ord={};
   ids.forEach(i=>{gen[i]=0;par[i]=[];chi[i]=[];sp[i]=[]});
-  pcs.forEach(r=>{if(has.has(r.parentId)&&has.has(r.childId)&&r.parentId!==r.childId){par[r.childId].push(r.parentId);chi[r.parentId].push(r.childId)}});
+  pcs.forEach(r=>{if(has.has(r.parentId)&&has.has(r.childId)&&r.parentId!==r.childId){par[r.childId].push(r.parentId);chi[r.parentId].push(r.childId);const o=Number(r.order);if(o>0)ord[r.childId]=Math.min(ord[r.childId]||Infinity,o)}});
   sps.forEach(r=>{if(has.has(r.personAId)&&has.has(r.personBId)&&r.personAId!==r.personBId){sp[r.personAId].push(r.personBId);sp[r.personBId].push(r.personAId)}});
   for(let n=0;n<ids.length+2;n++){let ch=false;ids.forEach(i=>{par[i].forEach(p=>{if(gen[i]<gen[p]+1){gen[i]=gen[p]+1;ch=true}});sp[i].forEach(o=>{if(gen[i]<gen[o]){gen[i]=gen[o];ch=true}})});if(!ch)break}
   /* A "unit" is a person plus their spouses on the same row; units are laid out as blocks. */
   const unitOf={},units=[];
   ids.forEach(i=>{if(unitOf[i]!==undefined)return;const members=[i];unitOf[i]=units.length;for(let k=0;k<members.length;k++)sp[members[k]].forEach(o=>{if(unitOf[o]===undefined&&gen[o]===gen[i]){unitOf[o]=units.length;members.push(o)}});units.push({members,gen:gen[i],par:new Set(),chi:new Set(),x:0,w:members.length*(NODE_W+GAP_X)-GAP_X})});
   ids.forEach(c=>par[c].forEach(p=>{const a=unitOf[p],b=unitOf[c];if(a!==b){units[b].par.add(a);units[a].chi.add(b)}}));
+  /* Brothers and sisters (units with the same parent units) read left to right in their stored birth order. */
+  const sibKey=u=>[...units[u].par].sort((a,b)=>a-b).join(","),sibOrd=u=>Math.min(...units[u].members.map(m=>ord[m]||Infinity));
   const L=units.reduce((m,u)=>Math.max(m,u.gen),0),levels=Array.from({length:L+1},()=>[]);
   units.forEach((u,i)=>levels[u.gen].push(i));
   const slot=new Array(units.length).fill(0),reindex=()=>levels.forEach(lv=>lv.forEach((u,k)=>{slot[u]=k}));
   reindex();
   const mean=(set,def)=>{if(!set.size)return def;let s=0;set.forEach(u=>{s+=slot[u]});return s/set.size};
+  const orderSiblings=lv=>{
+    const groups=new Map();lv.forEach((u,k)=>{if(!units[u].par.size)return;const key=sibKey(u);(groups.get(key)||groups.set(key,[]).get(key)).push(k)});
+    groups.forEach(idx=>{if(idx.length<2)return;const us=idx.map(k=>lv[k]).sort((a,b)=>sibOrd(a)-sibOrd(b)||slot[a]-slot[b]);idx.forEach((k,j)=>{lv[k]=us[j]})})
+  };
   for(let it=0;it<4;it++){
-    for(let g=1;g<=L;g++){levels[g].sort((a,b)=>mean(units[a].par,slot[a]*1e-3)-mean(units[b].par,slot[b]*1e-3)||slot[a]-slot[b]);reindex()}
-    for(let g=L-1;g>=0;g--){levels[g].sort((a,b)=>mean(units[a].chi,slot[a])-mean(units[b].chi,slot[b])||slot[a]-slot[b]);reindex()}
+    for(let g=1;g<=L;g++){levels[g].sort((a,b)=>mean(units[a].par,slot[a]*1e-3)-mean(units[b].par,slot[b]*1e-3)||slot[a]-slot[b]);orderSiblings(levels[g]);reindex()}
+    for(let g=L-1;g>=0;g--){levels[g].sort((a,b)=>mean(units[a].chi,slot[a])-mean(units[b].chi,slot[b])||slot[a]-slot[b]);orderSiblings(levels[g]);reindex()}
   }
   const sep=lv=>{const off=[0];for(let k=1;k<lv.length;k++)off.push(off[k-1]+(units[lv[k-1]].w+units[lv[k]].w)/2+GAP_X*1.5);return off};
   levels.forEach(lv=>{const off=sep(lv);lv.forEach((u,k)=>{units[u].x=off[k]})});

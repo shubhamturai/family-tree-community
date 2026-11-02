@@ -51,6 +51,14 @@ function applyOne(d, type, x) {
     if (!validId(x.parentId) || !validId(x.childId) || x.parentId === x.childId || !person(x.parentId) || !person(x.childId)) throw new HttpError(409, "Invalid parent/child IDs");
     if (d.relationships.parentChild.some((r) => r.parentId === x.parentId && r.childId === x.childId)) throw new HttpError(409, "Relationship already exists");
     d.relationships.parentChild.push({ parentId: x.parentId, childId: x.childId, role: clean(x.role) || "parent", order: Number(x.order) || 1 });
+  } else if (type === "SET_CHILD_ORDER") {
+    const ids = Array.isArray(x.childIds) ? x.childIds : [];
+    if (ids.length < 2 || ids.some((c) => !validId(c) || !person(c))) throw new HttpError(409, "Unknown person in the child order.");
+    ids.forEach((c, i) => {
+      const links = d.relationships.parentChild.filter((r) => r.childId === c);
+      if (!links.length) throw new HttpError(409, "A listed child has no parents in the tree.");
+      links.forEach((r) => { r.order = i + 1; });
+    });
   } else if (type === "ADD_SPOUSE") {
     if (!validId(x.personAId) || !validId(x.personBId) || x.personAId === x.personBId || !person(x.personAId) || !person(x.personBId)) throw new HttpError(409, "Invalid spouse IDs");
     if (d.relationships.spouses.some((r) => sameCouple(r, x.personAId, x.personBId))) throw new HttpError(409, "Relationship already exists");
@@ -78,6 +86,7 @@ export function applyProposal(d, proposal) {
   const remap = (o) => {
     const r = { ...o };
     for (const k of REF_KEYS) if (typeof r[k] === "string" && idMap[r[k]]) r[k] = idMap[r[k]];
+    if (Array.isArray(r.childIds)) r.childIds = r.childIds.map((c) => idMap[c] || c);
     return r;
   };
   for (const c of list) {

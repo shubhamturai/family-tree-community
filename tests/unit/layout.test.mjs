@@ -92,3 +92,13 @@ test("unfold opens the nearest folds first and leaves unrelated folds alone", ()
   assert.deepEqual([...open].sort(), ["x"], "d sits under two folds (a and c): both open, the unrelated fold on x stays");
   assert.deepEqual([...unfold(all, pcs, [], new Set(["c", "x"]), "e")].sort(), ["c", "x"], "e is already visible: nothing changes");
 });
+
+test("brothers and sisters are laid out left to right in their stored birth order", () => {
+  const people = ["f", "m", "a", "b", "c", "d"];
+  const mk = (orders) => treeLayout(people, ["a", "b", "c", "d"].flatMap((c, i) => [{ parentId: "f", childId: c, order: orders[i] }, { parentId: "m", childId: c, order: orders[i] }]), [{ personAId: "f", personBId: "m" }]);
+  const left = (pos) => ["a", "b", "c", "d"].sort((x, y) => pos[x].x - pos[y].x).join("");
+  assert.equal(left(mk([1, 2, 3, 4])), "abcd");
+  assert.equal(left(mk([4, 3, 2, 1])), "dcba");
+  assert.equal(left(mk([2, 4, 1, 3])), "cadb");
+  assert.ok(noOverlap(mk([2, 4, 1, 3])));
+});

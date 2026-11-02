@@ -34,7 +34,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 .ord{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:#ffa94d;color:#1b1204;font-size:12px;font-weight:800;margin-right:4px}
 .mini{display:flex;gap:8px;align-items:baseline;font-size:13px}.mini.blocked{opacity:.55}
 .ico{flex:0 0 22px;height:22px;border-radius:7px;display:inline-grid;place-items:center;font-size:12px;font-weight:800;border:1px solid}
-.k-add .ico{color:#7ff0bd;border-color:#1e6653;background:#0a201b}.k-edit .ico{color:#ffd98a;border-color:#6b5316;background:#241c0a}.k-archive .ico{color:#ffb5be;border-color:#6c2a36;background:#241018}.k-link .ico,.k-spouse .ico{color:#9fe3ff;border-color:#1f5f78;background:#0a1d27}.k-unknown .ico{color:var(--muted);border-color:var(--line)}
+.k-add .ico{color:#7ff0bd;border-color:#1e6653;background:#0a201b}.k-edit .ico{color:#ffd98a;border-color:#6b5316;background:#241c0a}.k-archive .ico{color:#ffb5be;border-color:#6c2a36;background:#241018}.k-link .ico,.k-spouse .ico,.k-order .ico{color:#9fe3ff;border-color:#1f5f78;background:#0a1d27}.k-unknown .ico{color:var(--muted);border-color:var(--line)}
 .chg-note{font-size:12px;color:#9fe3ff}.chg-warn{font-size:12px;color:#ffd98a}.old{text-decoration:line-through;color:#ff9aa6}.new{color:#7ff0bd;font-weight:700}.k{color:#cbd5e1;font-weight:700}
 .contrib{font-size:13px;line-height:1.5;color:#e2e8f0;border-left:3px solid #7c6cf4;padding:2px 0 2px 10px}.pid{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-left:3px;font-weight:600}
 .rvbar{position:absolute;left:16px;right:16px;bottom:16px;max-width:820px;margin:0 auto;z-index:8;background:#0e1523f2;border:1px solid #3a4a68;border-radius:16px;box-shadow:0 20px 60px #000a;backdrop-filter:blur(10px);padding:12px 14px;display:grid;gap:10px}
@@ -71,6 +71,9 @@ kbd{font:600 10px ui-monospace,Menlo,monospace;border:1px solid #ffffff44;border
 .rvbar{left:8px;right:8px;bottom:8px;padding:10px}.modal{padding:8px}.tip{display:none}#loginCard.mini{flex-direction:column;align-items:stretch}
 }
 @media(pointer:coarse){.btn.small{min-height:40px}input,select,textarea{font-size:16px}}
+.kids{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:5px}.kids li{display:flex;align-items:center;gap:8px;padding:4px 6px;border:1px solid #202c40;border-radius:9px;background:#0a111e}.kids .n{font-style:normal;font-weight:800;font-size:11px;min-width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#18233a;color:var(--muted)}.kids .nm{flex:1;font-style:normal;font-weight:700;font-size:12px}.kids .mv{display:flex;gap:4px}.kids .mvb{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:#0d1626;color:var(--text);font-weight:800;cursor:pointer}.kids .mvb:disabled{opacity:.3;cursor:default}.kids .mvb:not(:disabled):hover{border-color:#6a5df0}
+@media(pointer:coarse){.kids .mvb{width:40px;height:40px}}
+.rel .plain{padding:0;background:none;border:0}
 </style>
 </head>
 <body>
@@ -225,7 +228,15 @@ function parents(){return data.relationships.parentChild.filter(r=>alive(person(
 function spouses(){return data.relationships.spouses.filter(r=>alive(person(r.personAId))&&alive(person(r.personBId)))}
 function treeNodes(q){return data.persons.filter(alive).filter(p=>!q||name(p).toLowerCase().includes(q.toLowerCase()))}
 function select(id){let p=person(id);if(!p)return;if(canvasMode!=="review"&&cy&&!cy.getElementById(id).length&&!searching()&&unhide(id))draw("");selected=p;cy.nodes().unselect();cy.getElementById(id).select();$("empty").classList.add("hidden");$("editor").classList.remove("hidden");$("pname").textContent=name(p);$("pid").textContent=p.id+" · "+LIFE_LABEL[lifeOf(p)];$("avatar").textContent=(name(p)||"?").split(" ").map(x=>x[0]).slice(0,2).join("").toUpperCase();$("first").value=p.firstName||"";$("middle").value=p.middleName||"";$("family").value=p.familyName||"";$("display").value=p.displayName||"";$("gender").value=p.gender||"";$("nick").value=p.nickname||"";$("maiden").value=p.maidenName||"";$("dob").value=fmt(p.dateOfBirth);$("dod").value=fmt(p.dateOfDeath);$("lifeStatus").value=lifeOf(p);syncLifeUi();$("birthPlace").value=p.birthPlace||"";$("birthRegion").value=p.birthRegion||"";$("birthCountry").value=p.birthCountry||"";$("deathPlace").value=p.deathPlace||"";$("location").value=p.currentLocation||"";$("occupation").value=p.occupation||"";$("notes").value=p.notes||"";relationView(p)}
-function relationView(p){let ps=parents().filter(r=>r.childId===p.id).map(r=>(r.role||"parent")+": "+name(person(r.parentId))),cs=parents().filter(r=>r.parentId===p.id).sort((a,b)=>(a.order||99)-(b.order||99)).map(r=>(r.order||"")+" · "+name(person(r.childId))),ss=spouses().filter(r=>r.personAId===p.id||r.personBId===p.id).map(r=>name(person(r.personAId===p.id?r.personBId:r.personAId)));$("rels").innerHTML='<div><span>Parents</span><b>'+esc(ps.join(" · ")||"None")+'</b></div><div><span>Spouses</span><b>'+esc(ss.join(" · ")||"None")+'</b></div><div><span>Children · ordered</span><b>'+esc(cs.join(" · ")||"None")+'</b></div>'}
+function relationView(p){let ps=parents().filter(r=>r.childId===p.id).map(r=>(r.role||"parent")+": "+name(person(r.parentId))),ss=spouses().filter(r=>r.personAId===p.id||r.personBId===p.id).map(r=>name(person(r.personAId===p.id?r.personBId:r.personAId))),kids=childrenOf(p.id);$("rels").innerHTML='<div><span>Parents</span><b>'+esc(ps.join(" · ")||"None")+'</b></div><div><span>Spouses</span><b>'+esc(ss.join(" · ")||"None")+'</b></div>'+(kids.length?'<div><span>Children · oldest first</span><ol class="kids">'+kids.map((r,i)=>'<li><i class="n">'+(i+1)+'</i><em class="nm">'+esc(name(person(r.childId)))+'</em>'+(kids.length>1?'<span class="mv"><button type="button" class="mvb" data-mv="-1" data-id="'+esc(r.childId)+'" aria-label="Move earlier"'+(i?'':' disabled')+'>↑</button><button type="button" class="mvb" data-mv="1" data-id="'+esc(r.childId)+'" aria-label="Move later"'+(i<kids.length-1?'':' disabled')+'>↓</button></span>':'')+'</li>').join("")+'</ol>'+(kids.length>1?'<div class="row plain"><button type="button" class="btn small" data-sortdob>⇅ Sort by birth date</button></div>':'')+'</div>':'<div><span>Children</span><b>None</b></div>')}
+const childrenOf=pid=>parents().filter(r=>r.parentId===pid).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999));
+async function saveChildOrder(ids,msg){ids.forEach((c,i)=>{data.relationships.parentChild.filter(r=>r.childId===c).forEach(r=>{r.order=i+1})});await save(msg);if(selected)relationView(selected);draw($("search").value)}
+document.addEventListener("click",async e=>{
+  const mv=e.target.closest("#rels [data-mv]"),so=e.target.closest("#rels [data-sortdob]");if(!selected||(!mv&&!so))return;
+  const ids=childrenOf(selected.id).map(r=>r.childId);
+  if(mv){const i=ids.indexOf(mv.dataset.id),j=i+Number(mv.dataset.mv);if(i<0||j<0||j>=ids.length)return;[ids[i],ids[j]]=[ids[j],ids[i]];await saveChildOrder(ids,"Admin reorder children of "+selected.id)}
+  else{const dob=id=>(person(id)||{}).dateOfBirth||"",known=ids.filter(id=>dob(id)).sort((a,b)=>dob(a)<dob(b)?-1:dob(a)>dob(b)?1:ids.indexOf(a)-ids.indexOf(b)),sorted=[...known,...ids.filter(id=>!dob(id))];if(sorted.join()===ids.join()){toast("Already in birth-date order.");return}await saveChildOrder(sorted,"Admin sort children of "+selected.id+" by birth date")}
+});
 function focus(id){let n=cy.getElementById(id);if(n.length){cy.fit(n.closedNeighborhood(),90);n.select()}}
 function syncLifeUi(){const dead=$("lifeStatus").value==="deceased";$("dodWrap").classList.toggle("hidden",!dead);$("deathPlaceWrap").classList.toggle("hidden",!dead)}
 $("lifeStatus").onchange=syncLifeUi;
@@ -251,7 +262,7 @@ function showTab(n,load=true){
 let graph=null;
 const FIELD_LABELS={firstName:"First name",middleName:"Middle name",familyName:"Family name",displayName:"Display name",nickname:"Nickname",maidenName:"Maiden name",gender:"Gender",dateOfBirth:"Date of birth",dateOfDeath:"Date of death",lifeStatus:"Life status",birthPlace:"Birth place",birthRegion:"Birth region",birthCountry:"Birth country",deathPlace:"Death place",currentLocation:"Current location",occupation:"Occupation",notes:"Notes",maritalStatus:"Marital status",isMarried:"Married"};
 const ROLE_LABELS={parent:"parent",father:"father",mother:"mother",adoptive_father:"adoptive father",adoptive_mother:"adoptive mother",step_father:"step-father",step_mother:"step-mother"};
-const KIND_ICON={add:"＋",edit:"✎",archive:"⌫",link:"⇄",spouse:"♥",unknown:"?"};
+const KIND_ICON={add:"＋",edit:"✎",archive:"⌫",link:"⇄",spouse:"♥",order:"⇅",unknown:"?"};
 function normGraph(g){g=g||{};g.persons=g.persons||[];g.relationships=g.relationships||{};g.relationships.parentChild=g.relationships.parentChild||[];g.relationships.spouses=g.relationships.spouses||[];return g}
 async function loadGraph(){
   const urls=[];if(apiBase)urls.push(apiBase+"/data/family.json?fresh=1&");urls.push("./data/family.json?");
@@ -323,6 +334,12 @@ function analyse(proposal){
       if(!a.exists||!b.exists)it.problem="One of these people no longer exists.";
       else if(a.key===b.key)it.problem="A person cannot be their own parent.";
       else if(known&&!a.isNew&&!b.isNew&&g.relationships.parentChild.some(r=>r.parentId===pl.parentId&&r.childId===pl.childId))it.problem="This relationship is already in the tree."
+    }else if(it.type==="SET_CHILD_ORDER"){
+      const refs=(Array.isArray(pl.childIds)?pl.childIds:[]).map(c=>ref(c,it.idx));it.kind="order";it.keys=refs.map(r=>r.key);refs.forEach(r=>needs(it,r));
+      it.title="New birth order: <b>"+refs.map(r=>esc(r.label)).join(" → ")+"</b>";
+      it.lines.push("Brothers and sisters will read left to right in this order.");
+      refs.forEach(r=>it.people.push({key:r.key,label:r.label,status:"link",amb:amb(r)}));
+      if(refs.some(r=>!r.exists))it.problem="One of these people no longer exists."
     }else if(it.type==="ADD_SPOUSE"){
       const a=ref(pl.personAId,it.idx),b=ref(pl.personBId,it.idx);it.kind="spouse";it.keys=[a.key,b.key];needs(it,a);needs(it,b);
       it.title=nm(a)+" and "+nm(b)+" are spouses";
