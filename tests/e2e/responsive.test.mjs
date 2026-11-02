@@ -52,6 +52,23 @@ describe("layout works on phones, tablets and desktops", () => {
     });
   }
 
+  for (const [name, [w, h]] of Object.entries({ phone: [390, 844], "small phone": [360, 640] })) {
+    test("the Admin button stays visible on a " + name + ", also while editing", async () => {
+      await page.setViewportSize({ width: w, height: h });
+      await app.open("/index.html"); await sleep(1000);
+      const box = async () => page.locator("#adminBtn").boundingBox();
+      let b = await box();
+      assert.ok(b && b.x >= 0 && b.x + b.width <= w, "Admin button on screen: " + JSON.stringify(b));
+      await page.evaluate(() => setEditMode(true)); await sleep(300);
+      b = await box();
+      assert.ok(b && b.x >= 0 && b.x + b.width <= w, "Admin button on screen while editing: " + JSON.stringify(b));
+      const s = await sideways(page);
+      assert.deepEqual(s.header, [], "nothing in the header is cut off while editing");
+      await page.click("#adminBtn"); await sleep(300);
+      assert.equal(await page.isVisible("#adminPw"), true, "it opens the sign-in");
+    });
+  }
+
   test("handles and the collapse pill get larger touch targets on touch screens", async () => {
     await app.open("/index.html"); await sleep(1000);
     const css = await page.evaluate(() => { const s = document.getElementById("nh-style"); return s ? s.textContent : ""; });

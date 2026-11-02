@@ -54,6 +54,8 @@ export async function startApp({ graph, viewport = { width: 1440, height: 860 },
   };
   env.ASSETS = { fetch: assetResponse };
 
+  // The Worker keeps the published tree in a module-level cache for 15 s; drop it so this app serves ITS graph, not an earlier test's.
+  await worker.fetch(new Request(ORIGIN + "/data/family.json?fresh=1"), env, { waitUntil() {} }).catch(() => {});
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport });
   const page = await ctx.newPage();

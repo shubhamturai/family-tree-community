@@ -32,7 +32,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 .row{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.rel{display:grid;gap:7px}.rel div{padding:8px 9px;background:var(--inset);border:1px solid var(--inset-line);border-radius:9px}.rel span{display:block;color:var(--muted);font-size:10px}.rel b{font-size:12px}
 .change{display:flex;gap:8px;padding:9px;border:1px solid var(--inset-line);background:var(--inset);border-radius:9px;margin-bottom:7px}.change .dot{width:23px;height:23px;border-radius:8px;background:var(--soft);display:grid;place-items:center}.change b{font-size:12px}.change small{display:block;color:var(--muted);margin-top:2px}
 .modal{position:fixed;inset:0;z-index:100;display:none;place-items:center;padding:18px;background:#03060ccc;backdrop-filter:blur(8px)}.modal.open{display:grid}.modalBox{width:min(720px,100%);max-height:92vh;overflow:auto;background:var(--modal);border:1px solid var(--line);border-radius:17px;box-shadow:0 35px 100px #0009}.modalHead{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line)}.modalHead h2{margin:0;font-size:17px}.modalBody{padding:18px}.modalFoot{display:flex;justify-content:flex-end;gap:7px;padding:13px 18px;border-top:1px solid var(--line)}
-@media(max-width:1050px){.layout{grid-template-columns:1fr}.side{position:fixed;z-index:15;right:0;top:72px;bottom:0;width:min(410px,95vw);box-shadow:-25px 0 80px #0009}.openPanel{display:block!important}.search input{width:180px}.tip{display:none}}@media(max-width:700px){.legend{display:none}.top{height:60px;padding:0 10px}.brand small{display:none}.mark{width:34px;height:34px}.brand{font-size:13px}.top>.actions{gap:4px}.top .btn{padding:7px 8px}.top #adminBtn{display:none}.layout{height:calc(100vh - 60px)}.toolbar{top:8px;left:8px;right:8px;align-items:flex-start}.search{max-width:calc(100vw - 105px)}.search input{width:calc(100vw - 175px);min-width:70px}.search #clearSearch{display:none}.toolbar>.actions{position:absolute;top:52px;left:0;right:0;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.toolbar>.actions .btn{white-space:nowrap}.side{top:60px;width:100%;border-left:0;border-top:1px solid var(--line);box-shadow:0 -20px 60px #0006}.sidein{padding:10px}.grid2{grid-template-columns:1fr}.card{padding:12px}.modal{padding:8px}.modalBox{max-height:96vh;border-radius:16px}.modalBody{padding:12px}.modalFoot{padding:10px 12px}.tip{display:none}#tree{touch-action:none}}.openPanel{display:none}
+@media(max-width:1050px){.layout{grid-template-columns:1fr}.side{position:fixed;z-index:15;right:0;top:72px;bottom:0;width:min(410px,95vw);box-shadow:-25px 0 80px #0009}.openPanel{display:block!important}.search input{width:180px}.tip{display:none}}@media(max-width:700px){.legend{display:none}.top{height:60px;padding:0 10px}.brand small{display:none}.mark{width:34px;height:34px}.brand{font-size:13px}.top>.actions{gap:4px}.top .btn{padding:7px 8px}.layout{height:calc(100vh - 60px)}.toolbar{top:8px;left:8px;right:8px;align-items:flex-start}.search{max-width:calc(100vw - 105px)}.search input{width:calc(100vw - 175px);min-width:70px}.search #clearSearch{display:none}.toolbar>.actions{position:absolute;top:52px;left:0;right:0;overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.toolbar>.actions .btn{white-space:nowrap}.side{top:60px;width:100%;border-left:0;border-top:1px solid var(--line);box-shadow:0 -20px 60px #0006}.sidein{padding:10px}.grid2{grid-template-columns:1fr}.card{padding:12px}.modal{padding:8px}.modalBox{max-height:96vh;border-radius:16px}.modalBody{padding:12px}.modalFoot{padding:10px 12px}.tip{display:none}#tree{touch-action:none}}.openPanel{display:none}
 
 :focus-visible{outline:3px solid var(--ring);outline-offset:2px}
 .btn:focus-visible,.tab:focus-visible{outline-offset:1px}
@@ -71,8 +71,11 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
 .toolbar>.actions .openPanel{order:-1}
 .qa{max-height:72vh;max-height:72dvh;overflow:auto}
 }
-@media(max-width:520px){#modeChip{display:none}.brand>div:last-child{display:none}}
+@media(max-width:520px){#modeChip{display:none}.brand>div:last-child{display:none}.top .lbl{display:none}.top .btn{padding:7px 9px}body.editing .brand{display:none}body.editing .top{justify-content:flex-end}}
 @media(pointer:coarse){.btn.small{min-height:40px}.person-row{min-height:46px}input,select,textarea{font-size:16px}}
+.kids{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:5px}.kids li{display:flex;align-items:center;gap:8px;padding:4px 6px;border:1px solid var(--line);border-radius:9px;background:var(--panel,transparent)}.kids .n{font-style:normal;font-weight:800;font-size:11px;min-width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--muted)}.kids .go{flex:1;text-align:left;background:none;border:0;padding:5px 2px;color:var(--text);font:inherit;font-weight:700;font-size:12px;cursor:pointer;min-height:32px}.kids .go small{color:var(--muted);font-weight:600;margin-left:4px}.kids .go:hover{text-decoration:underline}.kids .mv{display:flex;gap:4px}.kids .mvb{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--chipbg,transparent);color:var(--text);font-weight:800;cursor:pointer}.kids .mvb:disabled{opacity:.3;cursor:default}.kids .mvb:not(:disabled):hover{border-color:var(--brand)}
+@media(pointer:coarse){.kids .mvb{width:40px;height:40px}}
+.rel .plain{padding:0;background:none;border:0;margin-top:6px}
 </style>
 </head>
 <body>
@@ -84,7 +87,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;
     <span id="modeChip" class="chip">View</span>
     <button id="editBtn" class="btn small">✎ Edit tree</button>
     <button id="finishBtn" class="btn small green hidden">Finish editing</button>
-    <button id="themeBtn" class="btn small themeBtn" title="Toggle dark/light mode" aria-label="Toggle dark or light mode">☀︎</button><button id="exportBtn" class="btn small" title="Download the family data or print the tree" aria-label="Export or print">⬇ Export</button><button id="adminBtn" class="btn small">Admin</button><a id="requestsLink" class="btn small hidden" href="./admin.html" title="Review community edit requests in Admin Studio">Requests</a>
+    <button id="themeBtn" class="btn small themeBtn" title="Toggle dark/light mode" aria-label="Toggle dark or light mode">☀︎</button><button id="exportBtn" class="btn small" title="Download the family data or print the tree" aria-label="Export or print">⬇<span class="lbl"> Export</span></button><button id="adminBtn" class="btn small">Admin</button><a id="requestsLink" class="btn small hidden" href="./admin.html" title="Review community edit requests in Admin Studio">Requests</a>
   </div>
 </header>
 
@@ -182,7 +185,10 @@ function record(type,payload,label){
   draftSave();renderChanges();updateUndoUi()
 }
 function restoreSnapshot(sn){
-  data=deep(sn.data);changes=deep(sn.changes);snap=snapshot();draftSave();renderChanges();
+  /* Undoing or redoing a re-ordering of brothers and sisters must re-flow the tree; other undos keep everyone where they are. */
+  const links=d=>(d.relationships.parentChild||[]).map(r=>r.parentId+">"+r.childId).sort().join(),orders=d=>(d.relationships.parentChild||[]).map(r=>r.parentId+">"+r.childId+"#"+r.order).sort().join();
+  const reorder=links(data)===links(sn.data)&&orders(data)!==orders(sn.data);
+  data=deep(sn.data);changes=deep(sn.changes);snap=snapshot();draftSave();renderChanges();if(reorder)layoutPos={};
   draw($("search").value);
   if(selectedId&&byId(selectedId)&&active(byId(selectedId)))show(byId(selectedId));else clearSelection();
   updateUndoUi()
@@ -336,7 +342,38 @@ function renderActions(){
   if(editing)$("archiveAction").onclick=archiveSelected;else $("startFromPerson").onclick=()=>setEditMode(true)
 }
 function marriageHtml(p){let rs=spouseEdges().filter(r=>r.personAId===p.id||r.personBId===p.id).sort((a,b)=>(a.order||999)-(b.order||999));if(!rs.length)return '<div class="muted">No spouse relationship recorded.</div>';return rs.map(r=>{let other=byId(r.personAId===p.id?r.personBId:r.personAId),st=r.status||((r.divorceDate)?"divorced":"married");return '<div class="marriageBadge">◉ '+esc(st)+' · '+esc(name(other)||"Unknown")+ (r.marriageDate?' · '+esc(fmtDate(r.marriageDate)):"") +'</div>'}).join(" ")}
-function renderRelations(p){let ps=parentEdges().filter(r=>r.childId===p.id).map(r=>(r.role||"parent")+": "+name(byId(r.parentId))),cs=parentEdges().filter(r=>r.parentId===p.id).sort((a,b)=>(a.order||999)-(b.order||999)).map(r=>(r.order||"")+" · "+name(byId(r.childId))),ss=spouseEdges().filter(r=>r.personAId===p.id||r.personBId===p.id).sort((a,b)=>(a.order||999)-(b.order||999)).map(r=>{let o=byId(r.personAId===p.id?r.personBId:r.personAId);return (name(o)||"Unknown")+(r.marriageDate?" · "+fmtDate(r.marriageDate):"")+(r.marriagePlace?" · "+r.marriagePlace:"")+(r.status?" · "+r.status:"")});$("rels").innerHTML='<div><span>Parents</span><b>'+esc(ps.join(" · ")||"None")+'</b></div><div><span>Spouses</span><b>'+esc(ss.join(" · ")||"None")+'</b></div><div><span>Children · ordered</span><b>'+esc(cs.join(" · ")||"None")+'</b></div>'}
+function renderRelations(p){let ps=parentEdges().filter(r=>r.childId===p.id).map(r=>(r.role||"parent")+": "+name(byId(r.parentId))),ss=spouseEdges().filter(r=>r.personAId===p.id||r.personBId===p.id).sort((a,b)=>(a.order||999)-(b.order||999)).map(r=>{let o=byId(r.personAId===p.id?r.personBId:r.personAId);return (name(o)||"Unknown")+(r.marriageDate?" · "+fmtDate(r.marriageDate):"")+(r.marriagePlace?" · "+r.marriagePlace:"")+(r.status?" · "+r.status:"")});$("rels").innerHTML='<div><span>Parents</span><b>'+esc(ps.join(" · ")||"None")+'</b></div><div><span>Spouses</span><b>'+esc(ss.join(" · ")||"None")+'</b></div>'+childrenHtml(p.id)}
+const childrenOf=pid=>parentEdges().filter(r=>r.parentId===pid).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999));
+function childrenHtml(pid){
+  const kids=childrenOf(pid);if(!kids.length)return '<div><span>Children</span><b>None</b></div>';
+  const many=kids.length>1;
+  return '<div><span>Children · '+(many?'oldest first':'')+'</span><ol class="kids">'+kids.map((r,i)=>{const c=byId(r.childId),y=years(c);
+    return '<li><i class="n">'+(i+1)+'</i><button type="button" class="go" data-go="'+esc(c.id)+'">'+esc(name(c))+(y?' <small>'+esc(y)+'</small>':'')+'</button>'
+      +(many?'<span class="mv"><button type="button" class="mvb" data-mv="-1" data-id="'+esc(c.id)+'" aria-label="Move '+esc(name(c))+' earlier"'+(i?'':' disabled')+'>↑</button><button type="button" class="mvb" data-mv="1" data-id="'+esc(c.id)+'" aria-label="Move '+esc(name(c))+' later"'+(i<kids.length-1?'':' disabled')+'>↓</button></span>':'')+'</li>'}).join("")+'</ol>'
+    +(many?'<div class="row plain" style="margin-top:8px"><button type="button" class="btn small" data-sortdob>⇅ Sort by birth date</button></div><div class="hint plain">The tree shows brothers and sisters left to right in this order.</div>':'')+'</div>'
+}
+function applyChildOrder(ids,label,keepId){
+  ensureEditing();
+  ids.forEach((c,i)=>{parentEdges().filter(r=>r.childId===c).forEach(r=>{r.order=i+1})});
+  record("SET_CHILD_ORDER",{childIds:ids},label);
+  relayout(keepId||ids[0]);if(selectedId&&byId(selectedId))show(byId(selectedId))
+}
+function moveChild(pid,cid,dir){
+  const ids=childrenOf(pid).map(r=>r.childId),i=ids.indexOf(cid),j=i+dir;if(i<0||j<0||j>=ids.length)return;
+  [ids[i],ids[j]]=[ids[j],ids[i]];applyChildOrder(ids,"Moved "+name(byId(cid))+(dir<0?" earlier":" later")+" among the children of "+name(byId(pid)),cid)
+}
+function sortChildrenByBirth(pid){
+  const ids=childrenOf(pid).map(r=>r.childId),dob=id=>byId(id).dateOfBirth||"";
+  const known=ids.filter(id=>dob(id)).sort((a,b)=>dob(a)<dob(b)?-1:dob(a)>dob(b)?1:ids.indexOf(a)-ids.indexOf(b)),sorted=[...known,...ids.filter(id=>!dob(id))];
+  if(sorted.join()===ids.join()){toast("Already in birth-date order"+(known.length<ids.length?" (children without a birth date stay last).":"."));return}
+  applyChildOrder(sorted,"Sorted the children of "+name(byId(pid))+" by birth date")
+}
+$("rels").addEventListener("click",e=>{
+  const go=e.target.closest("[data-go]"),mv=e.target.closest("[data-mv]"),so=e.target.closest("[data-sortdob]");
+  if(go){const c=byId(go.dataset.go);if(c){show(c);focusNode(c.id)}}
+  else if(mv&&selectedId)moveChild(selectedId,mv.dataset.id,Number(mv.dataset.mv));
+  else if(so&&selectedId)sortChildrenByBirth(selectedId)
+});
 let layoutPos={};
 /* Big trees: fold a person's branch away (collapse) or look at one family line only (focus). Both are views, not edits. */
 let collapsed=new Set(),focusId=null,branchInfo={visible:new Set(),hidden:{},canCollapse:new Set()};
