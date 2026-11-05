@@ -102,3 +102,25 @@ test("brothers and sisters are laid out left to right in their stored birth orde
   assert.equal(left(mk([2, 4, 1, 3])), "cadb");
   assert.ok(noOverlap(mk([2, 4, 1, 3])));
 });
+
+test("a married-in spouse's own birth order does not move their partner among the partner's siblings", () => {
+  // family 1: f+m -> a (1), b (2); family 2: x+y -> s (1), t (2); b marries s
+  const people = ["f", "m", "a", "b", "x", "y", "s", "t"];
+  const pc = (p, c, o) => ({ parentId: p, childId: c, order: o });
+  const pos = treeLayout(people, [pc("f", "a", 1), pc("m", "a", 1), pc("f", "b", 2), pc("m", "b", 2), pc("x", "s", 1), pc("y", "s", 1), pc("x", "t", 2), pc("y", "t", 2)],
+    [{ personAId: "f", personBId: "m" }, { personAId: "x", personBId: "y" }, { personAId: "b", personBId: "s" }]);
+  assert.ok(pos.a.x < pos.b.x, "a (order 1) stays left of b (order 2)");
+  assert.ok(pos.s.x < pos.t.x, "s (order 1) stays left of t (order 2)");
+  assert.ok(noOverlap(pos));
+});
+
+test("reorderChildren and sortByBirth (shared by both pages)", () => {
+  const { reorderChildren, sortByBirth } = new Function(fs.readFileSync(new URL("../../tree-layout.js", import.meta.url), "utf8") + ";return {reorderChildren,sortByBirth}")();
+  const links = [{ parentId: "m", childId: "x", order: 1 }, { parentId: "m", childId: "c", order: 2 }, { parentId: "f", childId: "c", order: 1 }, { parentId: "m", childId: "d", order: 3 }, { parentId: "f", childId: "d", order: 2 }];
+  assert.equal(reorderChildren(links, ["d", "c"]), true);
+  const under = (p) => links.filter((r) => r.parentId === p).sort((a, b) => a.order - b.order).map((r) => r.childId).join("");
+  assert.equal(under("f"), "dc");
+  assert.equal(under("m"), "xdc", "x (only m's child) keeps first place");
+  assert.equal(reorderChildren(links, ["x", "f"]), false, "no shared parent");
+  assert.deepEqual(sortByBirth(["a", "b", "c", "d"], (id) => ({ a: "1995", b: "1990-06", c: "", d: "1990" })[id]), ["d", "b", "a", "c"]);
+});

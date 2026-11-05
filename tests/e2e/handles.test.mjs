@@ -349,7 +349,10 @@ describe("children's birth order", () => {
 
   test("↓ moves a child later: the list, the stored order and the tree all change, as one undoable step", async () => {
     const before = await page.evaluate(() => changes.length);
+    // someone outside the reordered family was dragged by hand: they must stay exactly where they were put
+    const dragged = await page.evaluate((r) => { layoutPos[r].x += 400; draw(""); show(byId(r)); return { ...cy.getElementById(r).position() }; }, root);
     await page.click('#rels [data-mv="1"][data-id="' + kids[0] + '"]'); await sleep(600);
+    assert.deepEqual(await page.evaluate((r) => ({ ...cy.getElementById(r).position() }), root), dragged, "a hand-placed person keeps their position");
     const want = [kids[1], kids[0], kids[2]];
     assert.deepEqual(await listed(), want);
     assert.deepEqual(await orderOnScreen(), want, "the tree follows");

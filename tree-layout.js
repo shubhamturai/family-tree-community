@@ -15,25 +15,28 @@ function pav(desired,offset){
   const out=[];blocks.forEach(b=>{const m=b.s/b.n;for(let k=0;k<b.n;k++)out.push(m+offset[out.length])});return out
 }
 function treeLayout(ids,pcs,sps){
-  const has=new Set(ids),gen={},par={},chi={},sp={},ord={};
+  const has=new Set(ids),gen={},par={},chi={},sp={};
   ids.forEach(i=>{gen[i]=0;par[i]=[];chi[i]=[];sp[i]=[]});
-  pcs.forEach(r=>{if(has.has(r.parentId)&&has.has(r.childId)&&r.parentId!==r.childId){par[r.childId].push(r.parentId);chi[r.parentId].push(r.childId);const o=Number(r.order);if(o>0)ord[r.childId]=Math.min(ord[r.childId]||Infinity,o)}});
+  pcs.forEach(r=>{if(has.has(r.parentId)&&has.has(r.childId)&&r.parentId!==r.childId){par[r.childId].push(r.parentId);chi[r.parentId].push(r.childId)}});
   sps.forEach(r=>{if(has.has(r.personAId)&&has.has(r.personBId)&&r.personAId!==r.personBId){sp[r.personAId].push(r.personBId);sp[r.personBId].push(r.personAId)}});
   for(let n=0;n<ids.length+2;n++){let ch=false;ids.forEach(i=>{par[i].forEach(p=>{if(gen[i]<gen[p]+1){gen[i]=gen[p]+1;ch=true}});sp[i].forEach(o=>{if(gen[i]<gen[o]){gen[i]=gen[o];ch=true}})});if(!ch)break}
   /* A "unit" is a person plus their spouses on the same row; units are laid out as blocks. */
   const unitOf={},units=[];
   ids.forEach(i=>{if(unitOf[i]!==undefined)return;const members=[i];unitOf[i]=units.length;for(let k=0;k<members.length;k++)sp[members[k]].forEach(o=>{if(unitOf[o]===undefined&&gen[o]===gen[i]){unitOf[o]=units.length;members.push(o)}});units.push({members,gen:gen[i],par:new Set(),chi:new Set(),x:0,w:members.length*(NODE_W+GAP_X)-GAP_X})});
   ids.forEach(c=>par[c].forEach(p=>{const a=unitOf[p],b=unitOf[c];if(a!==b){units[b].par.add(a);units[a].chi.add(b)}}));
-  /* Brothers and sisters (units with the same parent units) read left to right in their stored birth order. */
-  const sibKey=u=>[...units[u].par].sort((a,b)=>a-b).join(","),sibOrd=u=>Math.min(...units[u].members.map(m=>ord[m]||Infinity));
+  /* Brothers and sisters read left to right in their stored birth order — the order relative to THAT parent unit
+     (a married-in spouse's position in their own family must not count). */
+  const ordTo=new Map();
+  pcs.forEach(r=>{const o=Number(r.order);if(!(o>0)||!has.has(r.parentId)||!has.has(r.childId)||r.parentId===r.childId)return;const k=r.childId+"|"+unitOf[r.parentId];ordTo.set(k,Math.min(ordTo.get(k)??Infinity,o))});
+  const sibOrd=(u,p)=>Math.min(...units[u].members.map(m=>ordTo.get(m+"|"+p)??Infinity));
   const L=units.reduce((m,u)=>Math.max(m,u.gen),0),levels=Array.from({length:L+1},()=>[]);
   units.forEach((u,i)=>levels[u.gen].push(i));
   const slot=new Array(units.length).fill(0),reindex=()=>levels.forEach(lv=>lv.forEach((u,k)=>{slot[u]=k}));
   reindex();
   const mean=(set,def)=>{if(!set.size)return def;let s=0;set.forEach(u=>{s+=slot[u]});return s/set.size};
   const orderSiblings=lv=>{
-    const groups=new Map();lv.forEach((u,k)=>{if(!units[u].par.size)return;const key=sibKey(u);(groups.get(key)||groups.set(key,[]).get(key)).push(k)});
-    groups.forEach(idx=>{if(idx.length<2)return;const us=idx.map(k=>lv[k]).sort((a,b)=>sibOrd(a)-sibOrd(b)||slot[a]-slot[b]);idx.forEach((k,j)=>{lv[k]=us[j]})})
+    const groups=new Map();lv.forEach((u,k)=>units[u].par.forEach(p=>{(groups.get(p)||groups.set(p,[]).get(p)).push(k)}));
+    groups.forEach((idx,p)=>{if(idx.length<2)return;const us=idx.map(k=>lv[k]).sort((a,b)=>sibOrd(a,p)-sibOrd(b,p)||slot[a]-slot[b]);idx.forEach((k,j)=>{lv[k]=us[j]})})
   };
   for(let it=0;it<4;it++){
     for(let g=1;g<=L;g++){levels[g].sort((a,b)=>mean(units[a].par,slot[a]*1e-3)-mean(units[b].par,slot[b]*1e-3)||slot[a]-slot[b]);orderSiblings(levels[g]);reindex()}
@@ -100,4 +103,27 @@ function unfold(ids,pcs,sps,collapsed,id){
     frontier=nxt
   }
   return next
+}
+
+/*
+ * reorderChildren(parentChildLinks, childIds) -> false if the children share no parent, else true.
+ * Puts `childIds` in the given order under every parent they ALL share, keeping that parent's other children
+ * (half-siblings, archived ones) in the slots they already had, then renumbers that parent's children 1..n.
+ * The Worker applies SET_CHILD_ORDER with the same rule (backend/src/graph.js).
+ */
+function reorderChildren(links,childIds){
+  const parentsOf=c=>new Set(links.filter(r=>r.childId===c).map(r=>r.parentId));
+  let common=parentsOf(childIds[0]);childIds.slice(1).forEach(c=>{const p=parentsOf(c);common=new Set([...common].filter(x=>p.has(x)))});
+  if(!common.size)return false;
+  const want=new Set(childIds);
+  common.forEach(pid=>{
+    const rows=links.filter(r=>r.parentId===pid).sort((a,b)=>(Number(a.order)||999)-(Number(b.order)||999)),queue=childIds.slice();
+    rows.map(r=>want.has(r.childId)?queue.shift():r.childId).forEach((c,i)=>{rows.find(r=>r.childId===c).order=i+1})
+  });
+  return true
+}
+/* Children sorted by birth date (partial dates such as "1990" or "1990-06" compare fine); undated ones keep their place at the end. */
+function sortByBirth(ids,dobOf){
+  const known=ids.filter(id=>dobOf(id)).sort((a,b)=>dobOf(a)<dobOf(b)?-1:dobOf(a)>dobOf(b)?1:ids.indexOf(a)-ids.indexOf(b));
+  return [...known,...ids.filter(id=>!dobOf(id))]
 }

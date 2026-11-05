@@ -201,6 +201,18 @@ describe("editing tab", () => {
     assert.deepEqual(app.errors.filter((e) => !/409/.test(e)), []);
   });
 
+  test("reordering children in Admin Studio explains a failed save instead of failing silently", async () => {
+    const p = app.page;
+    await p.evaluate(() => showTab("edit")); await p.fill("#search", ""); await sleep(300);
+    const parent = await p.evaluate(() => data.persons.find((x) => parents().filter((r) => r.parentId === x.id).length > 1).id);
+    await p.evaluate((id) => select(id), parent); await sleep(300);
+    app.net.githubFail = 1;
+    await p.click("#rels [data-mv=\"1\"]"); await sleep(900);
+    assert.match(await app.toastText(), /reloaded/, "the error is shown");
+    assert.equal(await p.evaluate(() => orderBusy), false, "the buttons unlock again");
+    assert.deepEqual(app.errors.filter((e) => !/409/.test(e)), [], "no unhandled errors");
+  });
+
   test("Admin Studio's edit canvas can fold branches too, and selecting a hidden person opens the fold", async () => {
     const p = app.page, vis = () => p.evaluate(() => cy.nodes().length);
     await p.evaluate(() => showTab("edit"));

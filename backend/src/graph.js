@@ -52,13 +52,19 @@ function applyOne(d, type, x) {
     if (d.relationships.parentChild.some((r) => r.parentId === x.parentId && r.childId === x.childId)) throw new HttpError(409, "Relationship already exists");
     d.relationships.parentChild.push({ parentId: x.parentId, childId: x.childId, role: clean(x.role) || "parent", order: Number(x.order) || 1 });
   } else if (type === "SET_CHILD_ORDER") {
+    // Same rule as reorderChildren() in tree-layout.js: reorder only under the parents ALL listed children share,
+    // keeping each such parent's other children (half-siblings) in their slots, then renumber that parent's children 1..n.
     const ids = Array.isArray(x.childIds) ? x.childIds : [];
     if (ids.length < 2 || ids.some((c) => !validId(c) || !person(c))) throw new HttpError(409, "Unknown person in the child order.");
-    ids.forEach((c, i) => {
-      const links = d.relationships.parentChild.filter((r) => r.childId === c);
-      if (!links.length) throw new HttpError(409, "A listed child has no parents in the tree.");
-      links.forEach((r) => { r.order = i + 1; });
-    });
+    const links = d.relationships.parentChild, parentsOf = (c) => new Set(links.filter((r) => r.childId === c).map((r) => r.parentId));
+    let common = parentsOf(ids[0]);
+    for (const c of ids.slice(1)) { const p = parentsOf(c); common = new Set([...common].filter((q) => p.has(q))); }
+    if (!common.size) throw new HttpError(409, "These people are not brothers and sisters (they share no parent in the tree).");
+    const want = new Set(ids);
+    for (const pid of common) {
+      const rows = links.filter((r) => r.parentId === pid).sort((a, b) => (Number(a.order) || 999) - (Number(b.order) || 999)), queue = ids.slice();
+      rows.map((r) => (want.has(r.childId) ? queue.shift() : r.childId)).forEach((c, i) => { rows.find((r) => r.childId === c).order = i + 1; });
+    }
   } else if (type === "ADD_SPOUSE") {
     if (!validId(x.personAId) || !validId(x.personBId) || x.personAId === x.personBId || !person(x.personAId) || !person(x.personBId)) throw new HttpError(409, "Invalid spouse IDs");
     if (d.relationships.spouses.some((r) => sameCouple(r, x.personAId, x.personBId))) throw new HttpError(409, "Relationship already exists");

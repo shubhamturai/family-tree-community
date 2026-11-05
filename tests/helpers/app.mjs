@@ -56,7 +56,8 @@ export async function startApp({ graph, viewport = { width: 1440, height: 860 },
 
   // The Worker keeps the published tree in a module-level cache for 15 s; drop it so this app serves ITS graph, not an earlier test's.
   await worker.fetch(new Request(ORIGIN + "/data/family.json?fresh=1"), env, { waitUntil() {} }).catch(() => {});
-  const browser = await chromium.launch();
+  // PW_CHROMIUM lets a machine whose installed Chromium build differs from the pinned Playwright run the suite.
+  const browser = await chromium.launch(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {});
   const ctx = await browser.newContext({ viewport });
   const page = await ctx.newPage();
   const errors = [], toasts = [];

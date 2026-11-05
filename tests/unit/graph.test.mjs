@@ -72,20 +72,26 @@ test("dates may be partial (year or month only) and life status is tracked witho
   assert.equal(by("P000005").lifeStatus, "deceased", "a death date implies deceased");
 });
 
-test("SET_CHILD_ORDER renumbers every parent link of the listed children, validates, and survives an ID remap", async () => {
+test("SET_CHILD_ORDER reorders under the shared parents only, keeps half-siblings in place, refuses non-siblings, survives an ID remap", async () => {
   const { sanitizeChange } = await import("../../backend/src/validate.js");
-  const g = sampleGraph();
-  const kids = ["P000003", "P000004", "P000005"];
-  const extra = applyProposal(g, { operation: "BATCH_UPDATE", payload: { changes: [
+  const g = sampleGraph(); // P000001 + P000002 are the parents of P000003
+  applyProposal(g, { operation: "BATCH_UPDATE", payload: { changes: [
     { type: "ADD_PERSON", payload: { id: "P000004", displayName: "Second" } }, { type: "ADD_PERSON", payload: { id: "P000005", displayName: "Third" } },
-    { type: "ADD_PARENT_CHILD", payload: { parentId: "P000001", childId: "P000004", order: 5 } }, { type: "ADD_PARENT_CHILD", payload: { parentId: "P000001", childId: "P000005", order: 9 } },
-    { type: "SET_CHILD_ORDER", payload: { childIds: ["P000005", "P000003", "P000004"] } },
+    { type: "ADD_PERSON", payload: { id: "P000006", displayName: "Half sibling" } },
+    { type: "ADD_PARENT_CHILD", payload: { parentId: "P000001", childId: "P000004", order: 2 } }, { type: "ADD_PARENT_CHILD", payload: { parentId: "P000002", childId: "P000004", order: 3 } },
+    { type: "ADD_PARENT_CHILD", payload: { parentId: "P000001", childId: "P000005", order: 3 } }, { type: "ADD_PARENT_CHILD", payload: { parentId: "P000002", childId: "P000005", order: 4 } },
+    { type: "ADD_PARENT_CHILD", payload: { parentId: "P000002", childId: "P000006", order: 2 } }, // only P000002's child
   ] } });
-  const ord = (c) => extra.relationships.parentChild.filter((r) => r.childId === c).map((r) => r.order);
-  assert.deepEqual([ord("P000005"), ord("P000003"), ord("P000004")].map((o) => [...new Set(o)]), [[1], [2], [3]]);
+  const under = (pid) => g.relationships.parentChild.filter((r) => r.parentId === pid).sort((a, b) => a.order - b.order).map((r) => r.childId);
+  assert.deepEqual(under("P000002"), ["P000003", "P000006", "P000004", "P000005"]);
+  applyProposal(g, { operation: "BATCH_UPDATE", payload: { changes: [{ type: "SET_CHILD_ORDER", payload: { childIds: ["P000005", "P000003", "P000004"] } }] } });
+  assert.deepEqual(under("P000001"), ["P000005", "P000003", "P000004"]);
+  assert.deepEqual(under("P000002"), ["P000005", "P000006", "P000003", "P000004"], "the half-sibling keeps its slot; no duplicate numbers");
+  assert.deepEqual(g.relationships.parentChild.filter((r) => r.parentId === "P000002").map((r) => r.order).sort(), [1, 2, 3, 4]);
   assert.throws(() => sanitizeChange({ type: "SET_CHILD_ORDER", payload: { childIds: ["P000003"] } }), /2 to 50/);
   assert.throws(() => sanitizeChange({ type: "SET_CHILD_ORDER", payload: { childIds: ["P000003", "P000003"] } }), /twice/);
   assert.throws(() => applyProposal(sampleGraph(), { operation: "BATCH_UPDATE", payload: { changes: [{ type: "SET_CHILD_ORDER", payload: { childIds: ["P000003", "P000777"] } }] } }), /Unknown person/);
+  assert.throws(() => applyProposal(g, { operation: "BATCH_UPDATE", payload: { changes: [{ type: "SET_CHILD_ORDER", payload: { childIds: ["P000003", "P000001"] } }] } }), /share no parent/, "people who are not siblings are refused");
   // a new person whose ID collides gets a fresh ID and the order list follows it
   const h = sampleGraph();
   applyProposal(h, { operation: "BATCH_UPDATE", payload: { changes: [
@@ -95,3 +101,4 @@ test("SET_CHILD_ORDER renumbers every parent link of the listed children, valida
   ] } });
   assert.equal(integrityIssues(h).length, 0);
 });
+
